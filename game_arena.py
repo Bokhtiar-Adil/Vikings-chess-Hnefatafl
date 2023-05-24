@@ -108,19 +108,7 @@ class ChessBoard:
 
     def __init__(self, screen, board_size="large"):
 
-        # if board_size == "large":
-
-        #     self.initial_pattern = ["x..aaaaa..x",
-        #                             ".....a.....",
-        #                             "...........",
-        #                             "a....d....a",
-        #                             "a...ddd...a",
-        #                             "aa.ddcdd.aa",
-        #                             "a...ddd...a",
-        #                             "a....d....a",
-        #                             "...........",
-        #                             ".....a.....",
-        #                             "x..aaaaa..x"]
+        
         self.initial_pattern = ["x..aaaaa..x",
                                 ".....a.....",
                                 "...........",
@@ -188,6 +176,12 @@ class ChessPiece(pg.sprite.Sprite):
 
         pg.draw.circle(screen, self.color, self.center, PIECE_RADIUS)
 
+    def update_piece_position(self, row, column):
+
+        self.row, self.column = (row, column)
+        self.center = (BOARD_LEFT + int(CELL_WIDTH / 2) + self.column*CELL_WIDTH,
+                       BOARD_TOP + int(CELL_HEIGHT / 2) + self.row*CELL_HEIGHT)
+
 
 class AttackerPiece(ChessPiece):
 
@@ -196,6 +190,7 @@ class AttackerPiece(ChessPiece):
         pg.sprite.Sprite.__init__(self, self.groups)
         self.color = ATTACKER_PIECE_COLOR
         self.permit_to_res_sp = False
+        self.type = "a"
 
 
 class DefenderPiece(ChessPiece):
@@ -205,6 +200,7 @@ class DefenderPiece(ChessPiece):
         pg.sprite.Sprite.__init__(self, self.groups)
         self.color = DEFENDER_PIECE_COLOR
         self.permit_to_res_sp = False
+        self.type = "d"
 
 
 class KingPiece(DefenderPiece):
@@ -214,6 +210,7 @@ class KingPiece(DefenderPiece):
         pg.sprite.Sprite.__init__(self, self.groups)
         self.color = KING_PIECE_COLOR
         self.permit_to_res_sp = True
+        self.type = "k"
 
 
 def match_specific_global_data():
@@ -236,7 +233,7 @@ class Game_manager:
 
     def __init__(self, screen, board):
         self.screen = screen
-        self.board = board
+        self.board = board        
         self.attacker_turn = True
         self.defender_turn = False
         self.king_escaped = False
@@ -244,11 +241,19 @@ class Game_manager:
         self.already_selected = None
         self.is_selected = False
         self.valid_moves = []
+        self.valid_moves_positions = []
+        self.current_board_status = []
+        
+        for row in self.board.initial_pattern:
+            one_row = []
+            for column in row:
+                one_row.append(column)
+            self.current_board_status.append(one_row)
 
     def select_piece(self, selected_piece):
 
         # print("here 1")
-        # print(self.board.current_board_status)
+        # print(self.current_board_status)
         if not self.is_selected and selected_piece != self.already_selected:
             # print("here 2")
             self.is_selected = True
@@ -256,21 +261,22 @@ class Game_manager:
             self.find_valid_moves()
             # self.show_valid_moves()
             # print(self.valid_moves)
-            
+
         elif self.is_selected and selected_piece != self.already_selected:
             self.is_selected = True
             self.already_selected = selected_piece
             self.find_valid_moves()
             # self.show_valid_moves()
             # print(self.valid_moves)
-        
+
         elif self.is_selected:
             self.is_selected = False
             self.already_selected = None
             self.valid_moves = []
-        
+            self.valid_moves_positions = []
+
         # print(self.valid_moves)
-            
+
     def find_valid_moves(self):
 
         # print("here 3")
@@ -282,7 +288,7 @@ class Game_manager:
         tempr -= 1
         while tempr >= 0:
 
-            if self.board.current_board_status[tempr][tempc] != ".":
+            if self.current_board_status[tempr][tempc] != ".":
                 break
             else:
                 if (tempr, tempc) not in self.board.restricted_cells:
@@ -296,7 +302,7 @@ class Game_manager:
         tempr += 1
         while tempr < self.board.rows:
 
-            if self.board.current_board_status[tempr][tempc] != ".":
+            if self.current_board_status[tempr][tempc] != ".":
                 break
             else:
                 if (tempr, tempc) not in self.board.restricted_cells:
@@ -310,7 +316,7 @@ class Game_manager:
         tempc -= 1
         while tempc >= 0:
 
-            if self.board.current_board_status[tempr][tempc] != ".":
+            if self.current_board_status[tempr][tempc] != ".":
                 break
             else:
                 if (tempr, tempc) not in self.board.restricted_cells:
@@ -324,7 +330,7 @@ class Game_manager:
         tempc += 1
         while tempc < self.board.columns:
 
-            if self.board.current_board_status[tempr][tempc] != ".":
+            if self.current_board_status[tempr][tempc] != ".":
                 break
             else:
                 if (tempr, tempc) not in self.board.restricted_cells:
@@ -332,25 +338,93 @@ class Game_manager:
 
             tempc += 1
 
+        for position in self.valid_moves:
+            self.valid_moves_positions.append((BOARD_LEFT + int(CELL_WIDTH / 2) + position[1]*CELL_WIDTH,
+                                               BOARD_TOP + int(CELL_HEIGHT / 2) + position[0]*CELL_HEIGHT))
+
     def show_valid_moves(self):
-        
+
         # print("here 4")
         for index in self.valid_moves:
-            
+
             # print("here 5")
             indicator_pos = (BOARD_LEFT + int(CELL_WIDTH / 2) + index[1]*CELL_WIDTH,
-                           BOARD_TOP + int(CELL_HEIGHT / 2) + index[0]*CELL_HEIGHT)
-            pg.draw.circle(self.screen, VALID_MOVE_INDICATOR_COLOR, indicator_pos, VALID_MOVE_INDICATOR_RADIUS)
+                             BOARD_TOP + int(CELL_HEIGHT / 2) + index[0]*CELL_HEIGHT)
+            pg.draw.circle(self.screen, VALID_MOVE_INDICATOR_COLOR,
+                           indicator_pos, VALID_MOVE_INDICATOR_RADIUS)
+
+    def deselect(self):
+
+        self.is_selected = False
+        self.already_selected = None
+        self.valid_moves = []
+        self.valid_moves_positions = []
+        Current_piece.empty()
+        
+    def update_board_status(self):
+        
+        self.current_board_status = []
+        
+        for row in range(self.board.rows):
+            one_row = []
+            for column in range(self.board.columns):
+                one_row.append(".")
+            
+            self.current_board_status.append(one_row)
+            
+        for piece in All_pieces:
+            self.current_board_status[piece.row][piece.column] = piece.type
+
+    def mouse_pos_analyzer(self, msx, msy):
+
+        if not self.is_selected:
+            for piece in All_pieces:
+                if (msx >= piece.center[0] - PIECE_RADIUS) and (msx < piece.center[0] + PIECE_RADIUS):
+                    if (msy >= piece.center[1] - PIECE_RADIUS) and (msy < piece.center[1] + PIECE_RADIUS):
+                        self.select_piece(piece)
+                        # manager.show_valid_moves()
+                        Current_piece.add(piece)
+                        # print("Added")
+                        break
+        
+        else:
+            done = False
+            for piece in All_pieces:
+                if (msx >= piece.center[0] - PIECE_RADIUS) and (msx < piece.center[0] + PIECE_RADIUS):
+                    if (msy >= piece.center[1] - PIECE_RADIUS) and (msy < piece.center[1] + PIECE_RADIUS):
+                        done = True
+                        if piece == self.already_selected:
+                            self.deselect()                            
+                            break
+                        else:
+                            self.deselect()    
+                            self.select_piece(piece)
+                            # manager.show_valid_moves()
+                            Current_piece.add(piece)
+                            # print("Added")
+                        break
+            
+            if not done:
+                
+                for ind,pos in enumerate(self.valid_moves_positions):
+                    if (msx >= pos[0] - PIECE_RADIUS) and (msx < pos[0] + PIECE_RADIUS):
+                        if (msy >= pos[1] - PIECE_RADIUS) and (msy < pos[1] + PIECE_RADIUS):
+                            self.already_selected.update_piece_position(self.valid_moves[ind][0], self.valid_moves[ind][1])                            
+                            self.update_board_status()
+                            done = True
+                            break
+            
+                self.deselect()
 
 
 def game_window(screen):
-    
+
     match_specific_global_data()
     chessboard = ChessBoard(screen)
     chessboard.draw_empty_board()
     chessboard.initiate_board_pieces()
     manager = Game_manager(screen, chessboard)
-    
+
     tafle = True
     while tafle:
         write_text("Play Vikings Chess", screen, (20, 20), (255, 255, 255),
@@ -364,12 +438,15 @@ def game_window(screen):
             main()
 
         if restartbtn.draw_button():
-            pass
+            match_specific_global_data()
+            chessboard = ChessBoard(screen)
+            chessboard.draw_empty_board()
+            chessboard.initiate_board_pieces()
+            manager = Game_manager(screen, chessboard)
 
         chessboard.draw_empty_board()
-        # selected_piece = None
 
-        for event in pg.event.get():            
+        for event in pg.event.get():
             if event.type == pg.QUIT:
                 pg.quit()
             if event.type == pg.KEYDOWN:
@@ -377,19 +454,13 @@ def game_window(screen):
                     tafle = False
             if event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
                 msx, msy = pg.mouse.get_pos()
-                for piece in All_pieces:
-                    if (msx >= piece.center[0] - PIECE_RADIUS) and (msx <= piece.center[0] + PIECE_RADIUS):
-                        if (msy >= piece.center[1] - PIECE_RADIUS) and (msy <= piece.center[1] + PIECE_RADIUS):
-                            manager.select_piece(piece)
-                            # manager.show_valid_moves()
-                            Current_piece.add(piece)
-                            # print("Added")
-                            break
-
+                manager.mouse_pos_analyzer(msx, msy)
+                
         for piece in All_pieces:
             piece.draw_piece(screen)
-        
-        
+
+        # print(manager.valid_moves)
+
         manager.show_valid_moves()
         pg.display.update()
 
@@ -397,8 +468,14 @@ def game_window(screen):
 def rules(screen):
     tafle = True
     while tafle:
-        write_text("Rules", screen, (20, 20), (255, 255, 255),
-                   pg.font.SysFont("Arial", 20))
+        write_text("Rules of Viking Chess", screen, (20, 20), (255, 255, 255),
+                   pg.font.SysFont("Arial", 40))
+        backbtn = Custom_button(800, 20, "Back", screen,
+                                pg.font.SysFont("Arial", 30))
+
+        if backbtn.draw_button():
+            main()
+        
         for event in pg.event.get():
             if event.type == pg.QUIT:
                 pg.quit()
@@ -412,7 +489,13 @@ def history(screen):
     tafle = True
     while tafle:
         write_text("History", screen, (20, 20), (255, 255, 255),
-                   pg.font.SysFont("Arial", 20))
+                   pg.font.SysFont("Arial", 40))
+        backbtn = Custom_button(800, 20, "Back", screen,
+                                pg.font.SysFont("Arial", 30))
+
+        if backbtn.draw_button():
+            main()
+            
         for event in pg.event.get():
             if event.type == pg.QUIT:
                 pg.quit()
