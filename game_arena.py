@@ -13,6 +13,7 @@ BOARD_LEFT = 225
 CELL_WIDTH = 50
 CELL_HEIGHT = 50
 PIECE_RADIUS = 20
+VALID_MOVE_INDICATOR_RADIUS = 10
 
 
 bg = (204, 102, 0)
@@ -31,6 +32,7 @@ blue_indigo = (63, 0, 255)
 ATTACKER_PIECE_COLOR = pink_fuchsia
 DEFENDER_PIECE_COLOR = green_teal
 KING_PIECE_COLOR = blue_indigo
+VALID_MOVE_INDICATOR_COLOR = green_neon
 
 clicked = False
 
@@ -137,6 +139,8 @@ class ChessBoard:
         self.cell_height = CELL_HEIGHT
         self.screen = screen
         self.current_board_status = self.initial_pattern
+        self.restricted_cells = [(0, 0), (0, self.columns-1), (int(self.rows/2), int(
+            self.columns/2)), (self.rows-1, 0), (self.rows-1, self.columns-1)]
 
     def draw_empty_board(self):
 
@@ -162,32 +166,33 @@ class ChessBoard:
         for row in range(self.rows):
             for column in range(self.columns):
                 if self.initial_pattern[row][column] == 'a':
-                    AttackerPiece(BOARD_LEFT + int(CELL_WIDTH / 2) + column*CELL_WIDTH,
-                                  BOARD_TOP + int(CELL_HEIGHT / 2) + row*CELL_HEIGHT)
+                    AttackerPiece(row, column)
                 elif self.initial_pattern[row][column] == 'd':
-                    DefenderPiece(BOARD_LEFT + int(CELL_WIDTH / 2) + column*CELL_WIDTH,
-                                  BOARD_TOP + int(CELL_HEIGHT / 2) + row*CELL_HEIGHT)
+                    DefenderPiece(row, column)
                 elif self.initial_pattern[row][column] == 'c':
-                    KingPiece(BOARD_LEFT + int(CELL_WIDTH / 2) + column*CELL_WIDTH,
-                              BOARD_TOP + int(CELL_HEIGHT / 2) + row*CELL_HEIGHT)
+                    KingPiece(row, column)
                 else:
                     pass
 
 
 class ChessPiece(pg.sprite.Sprite):
 
-    def __init__(self, posx, posy):
+    def __init__(self, row, column):
+
         pg.sprite.Sprite.__init__(self, self.groups)
-        self.center = (posx, posy)
+        self.row, self.column = (row, column)
+        self.center = (BOARD_LEFT + int(CELL_WIDTH / 2) + self.column*CELL_WIDTH,
+                       BOARD_TOP + int(CELL_HEIGHT / 2) + self.row*CELL_HEIGHT)
 
     def draw_piece(self, screen):
+
         pg.draw.circle(screen, self.color, self.center, PIECE_RADIUS)
 
 
 class AttackerPiece(ChessPiece):
 
-    def __init__(self, posx, posy):
-        ChessPiece.__init__(self, posx, posy)
+    def __init__(self, row, column):
+        ChessPiece.__init__(self, row, column)
         pg.sprite.Sprite.__init__(self, self.groups)
         self.color = ATTACKER_PIECE_COLOR
         self.permit_to_res_sp = False
@@ -195,8 +200,8 @@ class AttackerPiece(ChessPiece):
 
 class DefenderPiece(ChessPiece):
 
-    def __init__(self, posx, posy):
-        ChessPiece.__init__(self, posx, posy)
+    def __init__(self, row, column):
+        ChessPiece.__init__(self, row, column)
         pg.sprite.Sprite.__init__(self, self.groups)
         self.color = DEFENDER_PIECE_COLOR
         self.permit_to_res_sp = False
@@ -204,8 +209,8 @@ class DefenderPiece(ChessPiece):
 
 class KingPiece(DefenderPiece):
 
-    def __init__(self, posx, posy):
-        DefenderPiece.__init__(self, posx, posy)
+    def __init__(self, row, column):
+        DefenderPiece.__init__(self, row, column)
         pg.sprite.Sprite.__init__(self, self.groups)
         self.color = KING_PIECE_COLOR
         self.permit_to_res_sp = True
@@ -213,27 +218,139 @@ class KingPiece(DefenderPiece):
 
 def match_specific_global_data():
 
-    global Chess_pieces, Attacker_pieces, Defender_pieces, King_pieces, Current_piece
+    global All_pieces, Attacker_pieces, Defender_pieces, King_pieces, Current_piece
 
-    Chess_pieces = pg.sprite.Group()
+    All_pieces = pg.sprite.Group()
     Attacker_pieces = pg.sprite.Group()
     Defender_pieces = pg.sprite.Group()
     King_pieces = pg.sprite.Group()
     Current_piece = pg.sprite.Group()
 
-    ChessPiece.groups = Chess_pieces
-    AttackerPiece.groups = Chess_pieces, Attacker_pieces
-    DefenderPiece.groups = Chess_pieces, Defender_pieces
-    KingPiece.groups = Chess_pieces, Defender_pieces, King_pieces
+    ChessPiece.groups = All_pieces
+    AttackerPiece.groups = All_pieces, Attacker_pieces
+    DefenderPiece.groups = All_pieces, Defender_pieces
+    KingPiece.groups = All_pieces, Defender_pieces, King_pieces
 
 
-# def draw_current_board_status():
+class Game_manager:
 
-#     for piece in Chess_pieces:
-#         piece.draw_piece()
+    def __init__(self, screen, board):
+        self.screen = screen
+        self.board = board
+        self.attacker_turn = True
+        self.defender_turn = False
+        self.king_escaped = False
+        self.king_captured = False
+        self.already_selected = None
+        self.is_selected = False
+        self.valid_moves = []
+
+    def select_piece(self, selected_piece):
+
+        # print("here 1")
+        # print(self.board.current_board_status)
+        if not self.is_selected and selected_piece != self.already_selected:
+            # print("here 2")
+            self.is_selected = True
+            self.already_selected = selected_piece
+            self.find_valid_moves()
+            # self.show_valid_moves()
+            # print(self.valid_moves)
+            
+        elif self.is_selected and selected_piece != self.already_selected:
+            self.is_selected = True
+            self.already_selected = selected_piece
+            self.find_valid_moves()
+            # self.show_valid_moves()
+            # print(self.valid_moves)
+        
+        elif self.is_selected:
+            self.is_selected = False
+            self.already_selected = None
+            self.valid_moves = []
+        
+        # print(self.valid_moves)
+            
+    def find_valid_moves(self):
+
+        # print("here 3")
+        self.valid_moves = []
+        tempr = self.already_selected.row
+        tempc = self.already_selected.column
+        # print(tempr, tempc)
+
+        tempr -= 1
+        while tempr >= 0:
+
+            if self.board.current_board_status[tempr][tempc] != ".":
+                break
+            else:
+                if (tempr, tempc) not in self.board.restricted_cells:
+                    self.valid_moves.append((tempr, tempc))
+
+            tempr -= 1
+
+        tempr = self.already_selected.row
+        tempc = self.already_selected.column
+
+        tempr += 1
+        while tempr < self.board.rows:
+
+            if self.board.current_board_status[tempr][tempc] != ".":
+                break
+            else:
+                if (tempr, tempc) not in self.board.restricted_cells:
+                    self.valid_moves.append((tempr, tempc))
+
+            tempr += 1
+
+        tempr = self.already_selected.row
+        tempc = self.already_selected.column
+
+        tempc -= 1
+        while tempc >= 0:
+
+            if self.board.current_board_status[tempr][tempc] != ".":
+                break
+            else:
+                if (tempr, tempc) not in self.board.restricted_cells:
+                    self.valid_moves.append((tempr, tempc))
+
+            tempc -= 1
+
+        tempr = self.already_selected.row
+        tempc = self.already_selected.column
+
+        tempc += 1
+        while tempc < self.board.columns:
+
+            if self.board.current_board_status[tempr][tempc] != ".":
+                break
+            else:
+                if (tempr, tempc) not in self.board.restricted_cells:
+                    self.valid_moves.append((tempr, tempc))
+
+            tempc += 1
+
+    def show_valid_moves(self):
+        
+        # print("here 4")
+        for index in self.valid_moves:
+            
+            # print("here 5")
+            indicator_pos = (BOARD_LEFT + int(CELL_WIDTH / 2) + index[1]*CELL_WIDTH,
+                           BOARD_TOP + int(CELL_HEIGHT / 2) + index[0]*CELL_HEIGHT)
+            pg.draw.circle(self.screen, VALID_MOVE_INDICATOR_COLOR, indicator_pos, VALID_MOVE_INDICATOR_RADIUS)
 
 
-def game(screen):
+def game_window(screen):
+    
+    match_specific_global_data()
+    chessboard = ChessBoard(screen)
+    chessboard.draw_empty_board()
+    chessboard.initiate_board_pieces()
+    manager = Game_manager(screen, chessboard)
+    
     tafle = True
     while tafle:
         write_text("Play Vikings Chess", screen, (20, 20), (255, 255, 255),
@@ -249,21 +366,31 @@ def game(screen):
         if restartbtn.draw_button():
             pass
 
-        match_specific_global_data()
-        chessboard = ChessBoard(screen)
         chessboard.draw_empty_board()
-        chessboard.initiate_board_pieces()
+        # selected_piece = None
 
-        for event in pg.event.get():
+        for event in pg.event.get():            
             if event.type == pg.QUIT:
                 pg.quit()
             if event.type == pg.KEYDOWN:
                 if event.key == pg.K_ESCAPE:
                     tafle = False
+            if event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
+                msx, msy = pg.mouse.get_pos()
+                for piece in All_pieces:
+                    if (msx >= piece.center[0] - PIECE_RADIUS) and (msx <= piece.center[0] + PIECE_RADIUS):
+                        if (msy >= piece.center[1] - PIECE_RADIUS) and (msy <= piece.center[1] + PIECE_RADIUS):
+                            manager.select_piece(piece)
+                            # manager.show_valid_moves()
+                            Current_piece.add(piece)
+                            # print("Added")
+                            break
 
-        for piece in Chess_pieces:
+        for piece in All_pieces:
             piece.draw_piece(screen)
-
+        
+        
+        manager.show_valid_moves()
         pg.display.update()
 
 
@@ -325,7 +452,7 @@ def main():
             MAIN_MENU_TOP_BUTTON_x, MAIN_MENU_TOP_BUTTON_y + 300, "Exit", screen, btn_font)
 
         if gamebtn.draw_button():
-            game(screen)
+            game_window(screen)
 
         if rulesbtn.draw_button():
             rules(screen)
