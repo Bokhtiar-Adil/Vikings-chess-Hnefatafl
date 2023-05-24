@@ -2,16 +2,17 @@ import sys
 import pygame as pg
 
 
-WINDOW_HEIGHT = 700
+WINDOW_HEIGHT = 800
 WINDOW_WIDTH = 1000
 GAME_NAME = TITLE = "VIKINGS_CHESS"
 GAME_ICON = pg.image.load("images/vh.jpg")
 MAIN_MENU_TOP_BUTTON_x = 400
-MAIN_MENU_TOP_BUTTON_y = 150
+MAIN_MENU_TOP_BUTTON_y = 250
 BOARD_TOP = 120
 BOARD_LEFT = 225
 CELL_WIDTH = 50
 CELL_HEIGHT = 50
+PIECE_RADIUS = 20
 
 
 bg = (204, 102, 0)
@@ -21,6 +22,15 @@ black = (0, 0, 0)
 yellow = (255, 255, 1)
 golden = (255, 215, 0)
 white = (255, 255, 255)
+pink_fuchsia = (255, 0, 255)
+green_neon = (15, 255, 80)
+green_dark = (2, 48, 32)
+green_teal = (0, 128, 128)
+blue_indigo = (63, 0, 255)
+
+ATTACKER_PIECE_COLOR = pink_fuchsia
+DEFENDER_PIECE_COLOR = green_teal
+KING_PIECE_COLOR = blue_indigo
 
 clicked = False
 
@@ -96,34 +106,37 @@ class ChessBoard:
 
     def __init__(self, screen, board_size="large"):
 
-        if board_size == "large":
+        # if board_size == "large":
 
-            self.initial_pattern = [['x', '.', '.', 'a', 'a', 'a', 'a', 'a', '.', '.', 'x'],
-                                    ['.', '.', '.', '.', '.', 'a',
-                                        '.', '.', '.', '.', '.'],
-                                    ['.', '.', '.', '.', '.', '.',
-                                        '.', '.', '.', '.', '.'],
-                                    ['a', '.', '.', '.', '.', 'd',
-                                        '.', '.', '.', '.', 'a'],
-                                    ['a', '.', '.', '.', 'd', 'd',
-                                        'd', '.', '.', '.', 'a'],
-                                    ['a', 'a', '.', 'd', 'd', 'c',
-                                        'd', 'd', '.', 'a', 'a'],
-                                    ['a', '.', '.', '.', 'd', 'd',
-                                        'd', '.', '.', '.', 'a'],
-                                    ['a', '.', '.', '.', '.', 'd',
-                                        '.', '.', '.', '.', 'a'],
-                                    ['.', '.', '.', '.', '.', '.',
-                                        '.', '.', '.', '.', '.'],
-                                    ['.', '.', '.', '.', '.', 'a',
-                                        '.', '.', '.', '.', '.'],
-                                    ['x', '.', '.', 'a', 'a', 'a', 'a', 'a', '.', '.', 'x']]
+        #     self.initial_pattern = ["x..aaaaa..x",
+        #                             ".....a.....",
+        #                             "...........",
+        #                             "a....d....a",
+        #                             "a...ddd...a",
+        #                             "aa.ddcdd.aa",
+        #                             "a...ddd...a",
+        #                             "a....d....a",
+        #                             "...........",
+        #                             ".....a.....",
+        #                             "x..aaaaa..x"]
+        self.initial_pattern = ["x..aaaaa..x",
+                                ".....a.....",
+                                "...........",
+                                "a....d....a",
+                                "a...ddd...a",
+                                "aa.ddcdd.aa",
+                                "a...ddd...a",
+                                "a....d....a",
+                                "...........",
+                                ".....a.....",
+                                "x..aaaaa..x"]
 
         self.rows = len(self.initial_pattern)
         self.columns = len(self.initial_pattern[0])
         self.cell_width = CELL_WIDTH
         self.cell_height = CELL_HEIGHT
         self.screen = screen
+        self.current_board_status = self.initial_pattern
 
     def draw_empty_board(self):
 
@@ -132,17 +145,93 @@ class ChessBoard:
             for column in range(self.columns):
                 cell_rect = pg.Rect(BOARD_LEFT + column * self.cell_width, BOARD_TOP +
                                     row * self.cell_height, self.cell_width, self.cell_height)
-                
+
                 if (row == 0 or row == self.rows-1) and (column == 0 or column == self.columns-1):
                     pg.draw.rect(self.screen, red, cell_rect)
                 elif row == int(self.rows / 2) and column == int(self.columns / 2):
-                    pg.draw.rect(self.screen, golden, cell_rect)                    
+                    pg.draw.rect(self.screen, golden, cell_rect)
                 elif color_flag:
-                    pg.draw.rect(self.screen, white, cell_rect)                    
+                    pg.draw.rect(self.screen, white, cell_rect)
                 else:
                     pg.draw.rect(self.screen, black, cell_rect)
-                    
+
                 color_flag = not color_flag
+
+    def initiate_board_pieces(self):
+
+        for row in range(self.rows):
+            for column in range(self.columns):
+                if self.initial_pattern[row][column] == 'a':
+                    AttackerPiece(BOARD_LEFT + int(CELL_WIDTH / 2) + column*CELL_WIDTH,
+                                  BOARD_TOP + int(CELL_HEIGHT / 2) + row*CELL_HEIGHT)
+                elif self.initial_pattern[row][column] == 'd':
+                    DefenderPiece(BOARD_LEFT + int(CELL_WIDTH / 2) + column*CELL_WIDTH,
+                                  BOARD_TOP + int(CELL_HEIGHT / 2) + row*CELL_HEIGHT)
+                elif self.initial_pattern[row][column] == 'c':
+                    KingPiece(BOARD_LEFT + int(CELL_WIDTH / 2) + column*CELL_WIDTH,
+                              BOARD_TOP + int(CELL_HEIGHT / 2) + row*CELL_HEIGHT)
+                else:
+                    pass
+
+
+class ChessPiece(pg.sprite.Sprite):
+
+    def __init__(self, posx, posy):
+        pg.sprite.Sprite.__init__(self, self.groups)
+        self.center = (posx, posy)
+
+    def draw_piece(self, screen):
+        pg.draw.circle(screen, self.color, self.center, PIECE_RADIUS)
+
+
+class AttackerPiece(ChessPiece):
+
+    def __init__(self, posx, posy):
+        ChessPiece.__init__(self, posx, posy)
+        pg.sprite.Sprite.__init__(self, self.groups)
+        self.color = ATTACKER_PIECE_COLOR
+        self.permit_to_res_sp = False
+
+
+class DefenderPiece(ChessPiece):
+
+    def __init__(self, posx, posy):
+        ChessPiece.__init__(self, posx, posy)
+        pg.sprite.Sprite.__init__(self, self.groups)
+        self.color = DEFENDER_PIECE_COLOR
+        self.permit_to_res_sp = False
+
+
+class KingPiece(DefenderPiece):
+
+    def __init__(self, posx, posy):
+        DefenderPiece.__init__(self, posx, posy)
+        pg.sprite.Sprite.__init__(self, self.groups)
+        self.color = KING_PIECE_COLOR
+        self.permit_to_res_sp = True
+
+
+def match_specific_global_data():
+
+    global Chess_pieces, Attacker_pieces, Defender_pieces, King_pieces, Current_piece
+
+    Chess_pieces = pg.sprite.Group()
+    Attacker_pieces = pg.sprite.Group()
+    Defender_pieces = pg.sprite.Group()
+    King_pieces = pg.sprite.Group()
+    Current_piece = pg.sprite.Group()
+
+    ChessPiece.groups = Chess_pieces
+    AttackerPiece.groups = Chess_pieces, Attacker_pieces
+    DefenderPiece.groups = Chess_pieces, Defender_pieces
+    KingPiece.groups = Chess_pieces, Defender_pieces, King_pieces
+
+
+# def draw_current_board_status():
+
+#     for piece in Chess_pieces:
+#         piece.draw_piece()
+
 
 def game(screen):
     tafle = True
@@ -160,16 +249,21 @@ def game(screen):
         if restartbtn.draw_button():
             pass
 
+        match_specific_global_data()
         chessboard = ChessBoard(screen)
         chessboard.draw_empty_board()
-        
-        
+        chessboard.initiate_board_pieces()
+
         for event in pg.event.get():
             if event.type == pg.QUIT:
                 pg.quit()
             if event.type == pg.KEYDOWN:
                 if event.key == pg.K_ESCAPE:
                     tafle = False
+
+        for piece in Chess_pieces:
+            piece.draw_piece(screen)
+
         pg.display.update()
 
 
