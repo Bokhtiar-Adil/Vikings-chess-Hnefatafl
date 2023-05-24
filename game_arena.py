@@ -190,7 +190,7 @@ class AttackerPiece(ChessPiece):
         pg.sprite.Sprite.__init__(self, self.groups)
         self.color = ATTACKER_PIECE_COLOR
         self.permit_to_res_sp = False
-        self.type = "a"
+        self.ptype = "a"
 
 
 class DefenderPiece(ChessPiece):
@@ -200,7 +200,7 @@ class DefenderPiece(ChessPiece):
         pg.sprite.Sprite.__init__(self, self.groups)
         self.color = DEFENDER_PIECE_COLOR
         self.permit_to_res_sp = False
-        self.type = "d"
+        self.ptype = "d"
 
 
 class KingPiece(DefenderPiece):
@@ -210,7 +210,7 @@ class KingPiece(DefenderPiece):
         pg.sprite.Sprite.__init__(self, self.groups)
         self.color = KING_PIECE_COLOR
         self.permit_to_res_sp = True
-        self.type = "k"
+        self.ptype = "k"
 
 
 def match_specific_global_data():
@@ -237,6 +237,7 @@ class Game_manager:
         self.turn = True
         self.king_escaped = False
         self.king_captured = False
+        self.finish = False
         self.already_selected = None
         self.is_selected = False
         self.valid_moves = []
@@ -290,7 +291,7 @@ class Game_manager:
             if self.current_board_status[tempr][tempc] != ".":
                 break
             else:
-                if self.already_selected.type == "k":
+                if self.already_selected.ptype == "k":
                     if tempr < self.already_selected.row - 1 or tempr > self.already_selected.row + 1:
                         break
                     self.valid_moves.append((tempr, tempc))
@@ -309,7 +310,7 @@ class Game_manager:
             if self.current_board_status[tempr][tempc] != ".":
                 break
             else:
-                if self.already_selected.type == "k":
+                if self.already_selected.ptype == "k":
                     if tempr < self.already_selected.row - 1 or tempr > self.already_selected.row + 1:
                         break
                     self.valid_moves.append((tempr, tempc))
@@ -328,7 +329,7 @@ class Game_manager:
             if self.current_board_status[tempr][tempc] != ".":
                 break
             else:
-                if self.already_selected.type == "k":
+                if self.already_selected.ptype == "k":
                     if tempc < self.already_selected.column - 1 or tempc > self.already_selected.column + 1:
                         break
                     self.valid_moves.append((tempr, tempc))
@@ -347,7 +348,7 @@ class Game_manager:
             if self.current_board_status[tempr][tempc] != ".":
                 break
             else:
-                if self.already_selected.type == "k":
+                if self.already_selected.ptype == "k":
                     if tempc < self.already_selected.column - 1 or tempc > self.already_selected.column + 1:
                         break
                     self.valid_moves.append((tempr, tempc))
@@ -392,7 +393,73 @@ class Game_manager:
             self.current_board_status.append(one_row)
             
         for piece in All_pieces:
-            self.current_board_status[piece.row][piece.column] = piece.type
+            self.current_board_status[piece.row][piece.column] = piece.ptype
+            
+    
+    def kill_check(self):
+        
+        ptype, tempr, tempc = self.already_selected.ptype, self.already_selected.row, self.already_selected.column
+        
+        
+        if tempr < self.board.rows-2 and self.current_board_status[tempr+1][tempc] != ptype and self.current_board_status[tempr+2][tempc] == ptype:
+            for piece in All_pieces:
+                if piece.ptype == self.current_board_status[tempr+1][tempc] and piece.row == tempr+1 and piece.column == tempc:
+                    if piece.ptype == "k":
+                        self.king_captured = True
+                    else:
+                        piece.kill()
+                        self.update_board_status()
+                    break
+        
+        if tempr > 1 and self.current_board_status[tempr-1][tempc] != ptype and self.current_board_status[tempr-2][tempc] == ptype:
+            for piece in All_pieces:
+                if piece.ptype == self.current_board_status[tempr-1][tempc] and piece.row == tempr-1 and piece.column == tempc:
+                    if piece.ptype == "k":
+                        self.king_captured = True
+                    else:
+                        piece.kill()
+                        self.update_board_status()
+                    break
+        
+        if tempc < self.board.columns-2 and self.current_board_status[tempr][tempc+1] != ptype and self.current_board_status[tempr][tempc+2] == ptype:
+            for piece in All_pieces:
+                if piece.ptype == self.current_board_status[tempr][tempc+1] and piece.row == tempr and piece.column == tempc+1:
+                    if piece.ptype == "k":
+                        self.king_captured = True
+                    else:
+                        piece.kill()
+                        self.update_board_status()
+                    break
+        
+        if tempc > 1 and self.current_board_status[tempr][tempc-1] != ptype and self.current_board_status[tempr][tempc-2] == ptype:
+            for piece in All_pieces:
+                if piece.ptype == self.current_board_status[tempr][tempc-1] and piece.row == tempr and piece.column == tempc-1:
+                    if piece.ptype == "k":
+                        self.king_captured = True
+                    else:
+                        piece.kill()
+                        self.update_board_status()
+                    break
+    
+        if self.king_captured:
+            self.finish = True
+    
+    
+    def match_finished(self):
+        
+        if self.king_captured:
+            write_text("ATTACKERS WIN", self.screen, (400, BOARD_TOP + self.board.rows*CELL_HEIGHT + 50), pink_fuchsia,
+                       pg.font.SysFont("Arial", 40), False)
+        
+        elif self.king_escaped:
+            write_text("DEFENDERS WIN", self.screen, (400, BOARD_TOP + self.board.rows*CELL_HEIGHT + 50), green_neon, 
+                       pg.font.SysFont("Arial", 40), False)
+            
+        else:
+            pass
+        
+        
+        
 
     def mouse_pos_analyzer(self, msx, msy):
         
@@ -400,14 +467,14 @@ class Game_manager:
             for piece in All_pieces:
                 if (msx >= piece.center[0] - PIECE_RADIUS) and (msx < piece.center[0] + PIECE_RADIUS):
                     if (msy >= piece.center[1] - PIECE_RADIUS) and (msy < piece.center[1] + PIECE_RADIUS):
-                        if (piece.type == "a" and self.turn) or (piece.type != "a" and not self.turn):
+                        if (piece.ptype == "a" and self.turn) or (piece.ptype != "a" and not self.turn):
                             self.select_piece(piece)
                             # manager.show_valid_moves()
                             Current_piece.add(piece)
                             # print("Added")
                         break
         
-        elif (self.already_selected.type != "a" and self.turn) or (self.already_selected.type == "a" and not self.turn):
+        elif (self.already_selected.ptype != "a" and self.turn) or (self.already_selected.ptype == "a" and not self.turn):
             self.deselect()
         
         else:
@@ -421,7 +488,7 @@ class Game_manager:
                             break
                         else:
                             self.deselect()
-                            if (piece.type == "a" and self.turn) or (piece.type != "a" and not self.turn):                                    
+                            if (piece.ptype == "a" and self.turn) or (piece.ptype != "a" and not self.turn):                                    
                                 self.select_piece(piece)
                                 # manager.show_valid_moves()
                                 Current_piece.add(piece)
@@ -435,6 +502,7 @@ class Game_manager:
                         if (msy >= pos[1] - PIECE_RADIUS) and (msy < pos[1] + PIECE_RADIUS):
                             self.already_selected.update_piece_position(self.valid_moves[ind][0], self.valid_moves[ind][1])                            
                             self.update_board_status()
+                            self.kill_check()
                             self.turn = not self.turn
                             done = True
                             break
@@ -489,7 +557,8 @@ def game_window(screen):
                     tafle = False
             if event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
                 msx, msy = pg.mouse.get_pos()
-                manager.mouse_pos_analyzer(msx, msy)
+                if not manager.finish:
+                    manager.mouse_pos_analyzer(msx, msy)
                 
         for piece in All_pieces:
             piece.draw_piece(screen)
@@ -497,7 +566,10 @@ def game_window(screen):
         # print(manager.valid_moves)
 
         manager.show_valid_moves()
-        manager.turn_msg()
+        if manager.finish:
+            manager.match_finished()
+        else:
+            manager.turn_msg()
         pg.display.update()
 
 
