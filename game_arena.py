@@ -37,8 +37,9 @@ VALID_MOVE_INDICATOR_COLOR = green_neon
 clicked = False
 
 
-def write_text(text, screen, position, color, font):
-    screen.fill(bg2)
+def write_text(text, screen, position, color, font, new_window = True):
+    if new_window:
+        screen.fill(bg2)
     txtobj = font.render(text, True, (255, 255, 255))
     txtrect = txtobj.get_rect()
     txtrect.topleft = position
@@ -125,8 +126,7 @@ class ChessBoard:
         self.columns = len(self.initial_pattern[0])
         self.cell_width = CELL_WIDTH
         self.cell_height = CELL_HEIGHT
-        self.screen = screen
-        self.current_board_status = self.initial_pattern
+        self.screen = screen        
         self.restricted_cells = [(0, 0), (0, self.columns-1), (int(self.rows/2), int(
             self.columns/2)), (self.rows-1, 0), (self.rows-1, self.columns-1)]
 
@@ -233,9 +233,8 @@ class Game_manager:
 
     def __init__(self, screen, board):
         self.screen = screen
-        self.board = board        
-        self.attacker_turn = True
-        self.defender_turn = False
+        self.board = board
+        self.turn = True
         self.king_escaped = False
         self.king_captured = False
         self.already_selected = None
@@ -291,8 +290,13 @@ class Game_manager:
             if self.current_board_status[tempr][tempc] != ".":
                 break
             else:
-                if (tempr, tempc) not in self.board.restricted_cells:
+                if self.already_selected.type == "k":
+                    if tempr < self.already_selected.row - 1 or tempr > self.already_selected.row + 1:
+                        break
                     self.valid_moves.append((tempr, tempc))
+                else:
+                    if (tempr, tempc) not in self.board.restricted_cells:
+                        self.valid_moves.append((tempr, tempc))     
 
             tempr -= 1
 
@@ -305,8 +309,13 @@ class Game_manager:
             if self.current_board_status[tempr][tempc] != ".":
                 break
             else:
-                if (tempr, tempc) not in self.board.restricted_cells:
+                if self.already_selected.type == "k":
+                    if tempr < self.already_selected.row - 1 or tempr > self.already_selected.row + 1:
+                        break
                     self.valid_moves.append((tempr, tempc))
+                else:
+                    if (tempr, tempc) not in self.board.restricted_cells:
+                        self.valid_moves.append((tempr, tempc))     
 
             tempr += 1
 
@@ -319,8 +328,13 @@ class Game_manager:
             if self.current_board_status[tempr][tempc] != ".":
                 break
             else:
-                if (tempr, tempc) not in self.board.restricted_cells:
+                if self.already_selected.type == "k":
+                    if tempc < self.already_selected.column - 1 or tempc > self.already_selected.column + 1:
+                        break
                     self.valid_moves.append((tempr, tempc))
+                else:
+                    if (tempr, tempc) not in self.board.restricted_cells:
+                        self.valid_moves.append((tempr, tempc))                    
 
             tempc -= 1
 
@@ -333,8 +347,13 @@ class Game_manager:
             if self.current_board_status[tempr][tempc] != ".":
                 break
             else:
-                if (tempr, tempc) not in self.board.restricted_cells:
+                if self.already_selected.type == "k":
+                    if tempc < self.already_selected.column - 1 or tempc > self.already_selected.column + 1:
+                        break
                     self.valid_moves.append((tempr, tempc))
+                else:
+                    if (tempr, tempc) not in self.board.restricted_cells:
+                        self.valid_moves.append((tempr, tempc))     
 
             tempc += 1
 
@@ -376,16 +395,20 @@ class Game_manager:
             self.current_board_status[piece.row][piece.column] = piece.type
 
     def mouse_pos_analyzer(self, msx, msy):
-
+        
         if not self.is_selected:
             for piece in All_pieces:
                 if (msx >= piece.center[0] - PIECE_RADIUS) and (msx < piece.center[0] + PIECE_RADIUS):
                     if (msy >= piece.center[1] - PIECE_RADIUS) and (msy < piece.center[1] + PIECE_RADIUS):
-                        self.select_piece(piece)
-                        # manager.show_valid_moves()
-                        Current_piece.add(piece)
-                        # print("Added")
+                        if (piece.type == "a" and self.turn) or (piece.type != "a" and not self.turn):
+                            self.select_piece(piece)
+                            # manager.show_valid_moves()
+                            Current_piece.add(piece)
+                            # print("Added")
                         break
+        
+        elif (self.already_selected.type != "a" and self.turn) or (self.already_selected.type == "a" and not self.turn):
+            self.deselect()
         
         else:
             done = False
@@ -393,15 +416,16 @@ class Game_manager:
                 if (msx >= piece.center[0] - PIECE_RADIUS) and (msx < piece.center[0] + PIECE_RADIUS):
                     if (msy >= piece.center[1] - PIECE_RADIUS) and (msy < piece.center[1] + PIECE_RADIUS):
                         done = True
-                        if piece == self.already_selected:
-                            self.deselect()                            
+                        if piece == self.already_selected:                            
+                            self.deselect()                 
                             break
                         else:
-                            self.deselect()    
-                            self.select_piece(piece)
-                            # manager.show_valid_moves()
-                            Current_piece.add(piece)
-                            # print("Added")
+                            self.deselect()
+                            if (piece.type == "a" and self.turn) or (piece.type != "a" and not self.turn):                                    
+                                self.select_piece(piece)
+                                # manager.show_valid_moves()
+                                Current_piece.add(piece)
+                                # print("Added")
                         break
             
             if not done:
@@ -411,10 +435,21 @@ class Game_manager:
                         if (msy >= pos[1] - PIECE_RADIUS) and (msy < pos[1] + PIECE_RADIUS):
                             self.already_selected.update_piece_position(self.valid_moves[ind][0], self.valid_moves[ind][1])                            
                             self.update_board_status()
+                            self.turn = not self.turn
                             done = True
                             break
             
                 self.deselect()
+    
+    
+    def turn_msg(self):
+        
+        if self.turn:
+            write_text("Attacker's Turn", self.screen, (400, BOARD_TOP + self.board.rows*CELL_HEIGHT + 50), white, 
+                       pg.font.SysFont("Arial", 30), False)
+        else:
+            write_text("Defender's Turn", self.screen, (400, BOARD_TOP + self.board.rows*CELL_HEIGHT + 50), white, 
+                       pg.font.SysFont("Arial", 30), False)
 
 
 def game_window(screen):
@@ -442,8 +477,8 @@ def game_window(screen):
             chessboard = ChessBoard(screen)
             chessboard.draw_empty_board()
             chessboard.initiate_board_pieces()
-            manager = Game_manager(screen, chessboard)
-
+            manager = Game_manager(screen, chessboard)        
+        
         chessboard.draw_empty_board()
 
         for event in pg.event.get():
@@ -462,6 +497,7 @@ def game_window(screen):
         # print(manager.valid_moves)
 
         manager.show_valid_moves()
+        manager.turn_msg()
         pg.display.update()
 
 
