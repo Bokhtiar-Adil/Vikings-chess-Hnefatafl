@@ -389,59 +389,83 @@ class Game_manager:
             one_row = []
             for column in range(self.board.columns):
                 one_row.append(".")
-
+            
+            if row == 0 or row == self.board.rows - 1:
+                one_row[0] = "x"
+                one_row[self.board.columns-1] = "x"            
             self.current_board_status.append(one_row)
 
         for piece in All_pieces:
             self.current_board_status[piece.row][piece.column] = piece.ptype
+        
+        if self.current_board_status[int(self.board.rows/2)][int(self.board.columns/2)] != "k":
+            self.current_board_status[int(self.board.rows/2)][int(self.board.columns/2)] = "x"
+        
+        # print(self.current_board_status)
 
     def kill_check(self):
 
         ptype, tempr, tempc = self.already_selected.ptype, self.already_selected.row, self.already_selected.column
+        
+        if tempr < self.board.rows-2 :
+            opp1 = self.current_board_status[tempr+1][tempc]
+            opp2 = self.current_board_status[tempr+2][tempc]
+            
+            if not (opp1 == "." or opp1 == "x" or opp2 == "."):    
+                if (ptype == "a" and (opp2 == "a" or opp2 == "x") and ptype != opp1) or ((ptype == "d" or ptype == "k") and opp1 == "a" and opp2 != opp1):
+                    for piece in All_pieces:
+                        if piece.ptype == opp1 and piece.row == tempr+1 and piece.column == tempc:
+                            if piece.ptype == "k":
+                                self.king_captured = True
+                            else:
+                                piece.kill()
+                                self.update_board_status()
+                            break
+            
+        if tempr > 1 :
+            opp1 = self.current_board_status[tempr-1][tempc]
+            opp2 = self.current_board_status[tempr-2][tempc]
+            
+            if not (opp1 == "." or opp1 == "x" or opp2 == "."):
+                if (ptype == "a" and (opp2 == "a" or opp2 == "x") and ptype != opp1) or ((ptype == "d" or ptype == "k") and opp1 == "a" and opp2 != opp1):
+                    for piece in All_pieces:
+                        if piece.ptype == opp1 and piece.row == tempr-1 and piece.column == tempc:
+                            if piece.ptype == "k" :
+                                self.king_captured = True
+                            else:
+                                piece.kill()
+                                self.update_board_status()
+                            break
+            
+        if tempc < self.board.columns - 2:
+            opp1 = self.current_board_status[tempr][tempc+1]
+            opp2 = self.current_board_status[tempr][tempc+2]
+            
+            if not (opp1 == "." or opp1 == "x" or opp2 == "."):
+                if (ptype == "a" and (opp2 == "a" or opp2 == "x") and ptype != opp1) or ((ptype == "d" or ptype == "k") and opp1 == "a" and opp2 != opp1):
+                    for piece in All_pieces:
+                        if piece.ptype == opp1 and piece.row == tempr and piece.column == tempc+1:
+                            if piece.ptype == "k":
+                                self.king_captured = True
+                            else:
+                                piece.kill()
+                                self.update_board_status()
+                            break
 
-        if tempr < self.board.rows-2 and self.current_board_status[tempr+1][tempc] != ptype and self.current_board_status[tempr+2][tempc] == ptype:
-            if not (ptype == "d" and self.current_board_status[tempr+1][tempc] == "k"):
-                for piece in All_pieces:
-                    if piece.ptype == self.current_board_status[tempr+1][tempc] and piece.row == tempr+1 and piece.column == tempc:
-                        if piece.ptype == "k" and ptype == "a":
-                            self.king_captured = True
-                        else:
-                            piece.kill()
-                            self.update_board_status()
-                        break
-
-        if tempr > 1 and self.current_board_status[tempr-1][tempc] != ptype and self.current_board_status[tempr-2][tempc] == ptype:
-            if not (ptype == "d" and self.current_board_status[tempr-1][tempc] == "k"):
-                for piece in All_pieces:
-                    if piece.ptype == self.current_board_status[tempr-1][tempc] and piece.row == tempr-1 and piece.column == tempc:
-                        if piece.ptype == "k" and ptype == "a":
-                            self.king_captured = True
-                        else:
-                            piece.kill()
-                            self.update_board_status()
-                        break
-
-        if tempc < self.board.columns-2 and self.current_board_status[tempr][tempc+1] != ptype and self.current_board_status[tempr][tempc+2] == ptype:
-            if not (ptype == "d" and self.current_board_status[tempr][tempc+1] == "k"):
-                for piece in All_pieces:
-                    if piece.ptype == self.current_board_status[tempr][tempc+1] and piece.row == tempr and piece.column == tempc+1:
-                        if piece.ptype == "k" and ptype == "a":
-                            self.king_captured = True
-                        else:
-                            piece.kill()
-                            self.update_board_status()
-                        break
-
-        if tempc > 1 and self.current_board_status[tempr][tempc-1] != ptype and self.current_board_status[tempr][tempc-2] == ptype:
-            if not (ptype == "d" and self.current_board_status[tempr][tempc-1] == "k"):
-                for piece in All_pieces:
-                    if piece.ptype == self.current_board_status[tempr][tempc-1] and piece.row == tempr and piece.column == tempc-1:
-                        if piece.ptype == "k" and ptype == "a":
-                            self.king_captured = True
-                        else:
-                            piece.kill()
-                            self.update_board_status()
-                        break
+        if tempc > 1:
+            opp1 = self.current_board_status[tempr][tempc-1]
+            opp2 = self.current_board_status[tempr][tempc-2]
+            
+            if not (opp1 == "." or opp1 == "x" or opp2 == "."):
+                if (ptype == "a" and (opp2 == "a" or opp2 == "x") and ptype != opp1) or ((ptype == "d" or ptype == "k") and opp1 == "a" and opp2 != opp1):
+                    for piece in All_pieces:
+                        if piece.ptype == opp1 and piece.row == tempr and piece.column == tempc-1:
+                            if piece.ptype == "k":
+                                self.king_captured = True
+                            else:
+                                piece.kill()
+                                self.update_board_status()
+                            break                
 
         if self.king_captured:
             self.finish = True
