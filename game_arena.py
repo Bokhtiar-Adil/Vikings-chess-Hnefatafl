@@ -31,13 +31,13 @@ blue_indigo = (63, 0, 255)
 
 ATTACKER_PIECE_COLOR = pink_fuchsia
 DEFENDER_PIECE_COLOR = green_teal
-KING_PIECE_COLOR = blue_indigo
+KING_PIECE_COLOR = golden
 VALID_MOVE_INDICATOR_COLOR = green_neon
 
 clicked = False
 
 
-def write_text(text, screen, position, color, font, new_window = True):
+def write_text(text, screen, position, color, font, new_window=True):
     if new_window:
         screen.fill(bg2)
     txtobj = font.render(text, True, (255, 255, 255))
@@ -109,7 +109,6 @@ class ChessBoard:
 
     def __init__(self, screen, board_size="large"):
 
-        
         self.initial_pattern = ["x..aaaaa..x",
                                 ".....a.....",
                                 "...........",
@@ -126,7 +125,7 @@ class ChessBoard:
         self.columns = len(self.initial_pattern[0])
         self.cell_width = CELL_WIDTH
         self.cell_height = CELL_HEIGHT
-        self.screen = screen        
+        self.screen = screen
         self.restricted_cells = [(0, 0), (0, self.columns-1), (int(self.rows/2), int(
             self.columns/2)), (self.rows-1, 0), (self.rows-1, self.columns-1)]
 
@@ -141,7 +140,7 @@ class ChessBoard:
                 if (row == 0 or row == self.rows-1) and (column == 0 or column == self.columns-1):
                     pg.draw.rect(self.screen, red, cell_rect)
                 elif row == int(self.rows / 2) and column == int(self.columns / 2):
-                    pg.draw.rect(self.screen, golden, cell_rect)
+                    pg.draw.rect(self.screen, blue_indigo, cell_rect)
                 elif color_flag:
                     pg.draw.rect(self.screen, white, cell_rect)
                 else:
@@ -237,13 +236,14 @@ class Game_manager:
         self.turn = True
         self.king_escaped = False
         self.king_captured = False
+        self.all_attackers_killed = False
         self.finish = False
         self.already_selected = None
         self.is_selected = False
         self.valid_moves = []
         self.valid_moves_positions = []
         self.current_board_status = []
-        
+
         for row in self.board.initial_pattern:
             one_row = []
             for column in row:
@@ -297,7 +297,7 @@ class Game_manager:
                     self.valid_moves.append((tempr, tempc))
                 else:
                     if (tempr, tempc) not in self.board.restricted_cells:
-                        self.valid_moves.append((tempr, tempc))     
+                        self.valid_moves.append((tempr, tempc))
 
             tempr -= 1
 
@@ -316,7 +316,7 @@ class Game_manager:
                     self.valid_moves.append((tempr, tempc))
                 else:
                     if (tempr, tempc) not in self.board.restricted_cells:
-                        self.valid_moves.append((tempr, tempc))     
+                        self.valid_moves.append((tempr, tempc))
 
             tempr += 1
 
@@ -335,7 +335,7 @@ class Game_manager:
                     self.valid_moves.append((tempr, tempc))
                 else:
                     if (tempr, tempc) not in self.board.restricted_cells:
-                        self.valid_moves.append((tempr, tempc))                    
+                        self.valid_moves.append((tempr, tempc))
 
             tempc -= 1
 
@@ -354,7 +354,7 @@ class Game_manager:
                     self.valid_moves.append((tempr, tempc))
                 else:
                     if (tempr, tempc) not in self.board.restricted_cells:
-                        self.valid_moves.append((tempr, tempc))     
+                        self.valid_moves.append((tempr, tempc))
 
             tempc += 1
 
@@ -380,89 +380,112 @@ class Game_manager:
         self.valid_moves = []
         self.valid_moves_positions = []
         Current_piece.empty()
-        
+
     def update_board_status(self):
-        
+
         self.current_board_status = []
-        
+
         for row in range(self.board.rows):
             one_row = []
             for column in range(self.board.columns):
                 one_row.append(".")
-            
+
             self.current_board_status.append(one_row)
-            
+
         for piece in All_pieces:
             self.current_board_status[piece.row][piece.column] = piece.ptype
-            
-    
+
     def kill_check(self):
-        
+
         ptype, tempr, tempc = self.already_selected.ptype, self.already_selected.row, self.already_selected.column
-        
-        
+
         if tempr < self.board.rows-2 and self.current_board_status[tempr+1][tempc] != ptype and self.current_board_status[tempr+2][tempc] == ptype:
-            for piece in All_pieces:
-                if piece.ptype == self.current_board_status[tempr+1][tempc] and piece.row == tempr+1 and piece.column == tempc:
-                    if piece.ptype == "k":
-                        self.king_captured = True
-                    else:
-                        piece.kill()
-                        self.update_board_status()
-                    break
-        
+            if not (ptype == "d" and self.current_board_status[tempr+1][tempc] == "k"):
+                for piece in All_pieces:
+                    if piece.ptype == self.current_board_status[tempr+1][tempc] and piece.row == tempr+1 and piece.column == tempc:
+                        if piece.ptype == "k" and ptype == "a":
+                            self.king_captured = True
+                        else:
+                            piece.kill()
+                            self.update_board_status()
+                        break
+
         if tempr > 1 and self.current_board_status[tempr-1][tempc] != ptype and self.current_board_status[tempr-2][tempc] == ptype:
-            for piece in All_pieces:
-                if piece.ptype == self.current_board_status[tempr-1][tempc] and piece.row == tempr-1 and piece.column == tempc:
-                    if piece.ptype == "k":
-                        self.king_captured = True
-                    else:
-                        piece.kill()
-                        self.update_board_status()
-                    break
-        
+            if not (ptype == "d" and self.current_board_status[tempr-1][tempc] == "k"):
+                for piece in All_pieces:
+                    if piece.ptype == self.current_board_status[tempr-1][tempc] and piece.row == tempr-1 and piece.column == tempc:
+                        if piece.ptype == "k" and ptype == "a":
+                            self.king_captured = True
+                        else:
+                            piece.kill()
+                            self.update_board_status()
+                        break
+
         if tempc < self.board.columns-2 and self.current_board_status[tempr][tempc+1] != ptype and self.current_board_status[tempr][tempc+2] == ptype:
-            for piece in All_pieces:
-                if piece.ptype == self.current_board_status[tempr][tempc+1] and piece.row == tempr and piece.column == tempc+1:
-                    if piece.ptype == "k":
-                        self.king_captured = True
-                    else:
-                        piece.kill()
-                        self.update_board_status()
-                    break
-        
+            if not (ptype == "d" and self.current_board_status[tempr][tempc+1] == "k"):
+                for piece in All_pieces:
+                    if piece.ptype == self.current_board_status[tempr][tempc+1] and piece.row == tempr and piece.column == tempc+1:
+                        if piece.ptype == "k" and ptype == "a":
+                            self.king_captured = True
+                        else:
+                            piece.kill()
+                            self.update_board_status()
+                        break
+
         if tempc > 1 and self.current_board_status[tempr][tempc-1] != ptype and self.current_board_status[tempr][tempc-2] == ptype:
-            for piece in All_pieces:
-                if piece.ptype == self.current_board_status[tempr][tempc-1] and piece.row == tempr and piece.column == tempc-1:
-                    if piece.ptype == "k":
-                        self.king_captured = True
-                    else:
-                        piece.kill()
-                        self.update_board_status()
-                    break
-    
+            if not (ptype == "d" and self.current_board_status[tempr][tempc-1] == "k"):
+                for piece in All_pieces:
+                    if piece.ptype == self.current_board_status[tempr][tempc-1] and piece.row == tempr and piece.column == tempc-1:
+                        if piece.ptype == "k" and ptype == "a":
+                            self.king_captured = True
+                        else:
+                            piece.kill()
+                            self.update_board_status()
+                        break
+
         if self.king_captured:
             self.finish = True
+
+    def escape_check(self):
+
+        if self.current_board_status[0][0] == "k" or self.current_board_status[0][self.board.columns-1] == "k" or self.current_board_status[self.board.rows-1][0] == "k" or self.current_board_status[self.board.rows-1][self.board.columns-1] == "k":
+            self.king_escaped = True
+            self.finish = True
+
+        else:
+            self.king_escaped = False
+
     
+    def attackers_count_check(self):
+        
+        if len(Attacker_pieces) == 0:
+            self.all_attackers_killed = True
+            self.finish = True
     
+
+    def blockade_check(self):
+
+        pass
+
     def match_finished(self):
-        
+
         if self.king_captured:
-            write_text("ATTACKERS WIN", self.screen, (400, BOARD_TOP + self.board.rows*CELL_HEIGHT + 50), pink_fuchsia,
+            write_text("KING CAPTURED !! ATTACKERS WIN !!", self.screen, (300, BOARD_TOP + self.board.rows*CELL_HEIGHT + 50), pink_fuchsia,
+                       pg.font.SysFont("Arial", 40), False)
+
+        elif self.king_escaped:
+            write_text("KING ESCAPED !! DEFENDERS WIN !!", self.screen, (300, BOARD_TOP + self.board.rows*CELL_HEIGHT + 50), green_neon,
+                       pg.font.SysFont("Arial", 40), False)
+
+        elif self.all_attackers_dead:
+            write_text("ALL ATTACKERS DEAD !! DEFENDERS WIN !!", self.screen, (300, BOARD_TOP + self.board.rows*CELL_HEIGHT + 50), green_neon,
                        pg.font.SysFont("Arial", 40), False)
         
-        elif self.king_escaped:
-            write_text("DEFENDERS WIN", self.screen, (400, BOARD_TOP + self.board.rows*CELL_HEIGHT + 50), green_neon, 
-                       pg.font.SysFont("Arial", 40), False)
-            
         else:
             pass
-        
-        
-        
 
     def mouse_pos_analyzer(self, msx, msy):
-        
+
         if not self.is_selected:
             for piece in All_pieces:
                 if (msx >= piece.center[0] - PIECE_RADIUS) and (msx < piece.center[0] + PIECE_RADIUS):
@@ -473,50 +496,54 @@ class Game_manager:
                             Current_piece.add(piece)
                             # print("Added")
                         break
-        
+
         elif (self.already_selected.ptype != "a" and self.turn) or (self.already_selected.ptype == "a" and not self.turn):
             self.deselect()
-        
+
         else:
             done = False
             for piece in All_pieces:
                 if (msx >= piece.center[0] - PIECE_RADIUS) and (msx < piece.center[0] + PIECE_RADIUS):
                     if (msy >= piece.center[1] - PIECE_RADIUS) and (msy < piece.center[1] + PIECE_RADIUS):
                         done = True
-                        if piece == self.already_selected:                            
-                            self.deselect()                 
+                        if piece == self.already_selected:
+                            self.deselect()
                             break
                         else:
                             self.deselect()
-                            if (piece.ptype == "a" and self.turn) or (piece.ptype != "a" and not self.turn):                                    
+                            if (piece.ptype == "a" and self.turn) or (piece.ptype != "a" and not self.turn):
                                 self.select_piece(piece)
                                 # manager.show_valid_moves()
                                 Current_piece.add(piece)
                                 # print("Added")
                         break
-            
+
             if not done:
-                
-                for ind,pos in enumerate(self.valid_moves_positions):
+
+                for ind, pos in enumerate(self.valid_moves_positions):
                     if (msx >= pos[0] - PIECE_RADIUS) and (msx < pos[0] + PIECE_RADIUS):
                         if (msy >= pos[1] - PIECE_RADIUS) and (msy < pos[1] + PIECE_RADIUS):
-                            self.already_selected.update_piece_position(self.valid_moves[ind][0], self.valid_moves[ind][1])                            
+                            self.already_selected.update_piece_position(
+                                self.valid_moves[ind][0], self.valid_moves[ind][1])
                             self.update_board_status()
                             self.kill_check()
+                            if self.already_selected.ptype == "k":
+                                self.escape_check()
+                            if self.already_selected != "a":
+                                self.attackers_count_check()
                             self.turn = not self.turn
                             done = True
                             break
-            
+
                 self.deselect()
-    
-    
+
     def turn_msg(self):
-        
+
         if self.turn:
-            write_text("Attacker's Turn", self.screen, (400, BOARD_TOP + self.board.rows*CELL_HEIGHT + 50), white, 
+            write_text("Attacker's Turn", self.screen, (400, BOARD_TOP + self.board.rows*CELL_HEIGHT + 50), white,
                        pg.font.SysFont("Arial", 30), False)
         else:
-            write_text("Defender's Turn", self.screen, (400, BOARD_TOP + self.board.rows*CELL_HEIGHT + 50), white, 
+            write_text("Defender's Turn", self.screen, (400, BOARD_TOP + self.board.rows*CELL_HEIGHT + 50), white,
                        pg.font.SysFont("Arial", 30), False)
 
 
@@ -545,8 +572,8 @@ def game_window(screen):
             chessboard = ChessBoard(screen)
             chessboard.draw_empty_board()
             chessboard.initiate_board_pieces()
-            manager = Game_manager(screen, chessboard)        
-        
+            manager = Game_manager(screen, chessboard)
+
         chessboard.draw_empty_board()
 
         for event in pg.event.get():
@@ -559,7 +586,7 @@ def game_window(screen):
                 msx, msy = pg.mouse.get_pos()
                 if not manager.finish:
                     manager.mouse_pos_analyzer(msx, msy)
-                
+
         for piece in All_pieces:
             piece.draw_piece(screen)
 
@@ -583,7 +610,7 @@ def rules(screen):
 
         if backbtn.draw_button():
             main()
-        
+
         for event in pg.event.get():
             if event.type == pg.QUIT:
                 pg.quit()
@@ -603,7 +630,7 @@ def history(screen):
 
         if backbtn.draw_button():
             main()
-            
+
         for event in pg.event.get():
             if event.type == pg.QUIT:
                 pg.quit()
