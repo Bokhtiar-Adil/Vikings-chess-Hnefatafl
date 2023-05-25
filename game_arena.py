@@ -1,3 +1,4 @@
+import os
 import sys
 import pygame as pg
 
@@ -7,7 +8,7 @@ WINDOW_WIDTH = 1000
 GAME_NAME = TITLE = "VIKINGS_CHESS"
 GAME_ICON = pg.image.load("images/vh.jpg")
 MAIN_MENU_TOP_BUTTON_x = 400
-MAIN_MENU_TOP_BUTTON_y = 250
+MAIN_MENU_TOP_BUTTON_y = 400
 BOARD_TOP = 120
 BOARD_LEFT = 225
 CELL_WIDTH = 50
@@ -34,6 +35,12 @@ DEFENDER_PIECE_COLOR = green_teal
 KING_PIECE_COLOR = golden
 VALID_MOVE_INDICATOR_COLOR = green_neon
 
+GAME_ICON_resized = pg.image.load("images/vh_resized.jpg")
+
+click_snd = os.path.join("sounds", "click_1.wav")
+move_snd_1 = os.path.join("sounds", "move_1.mp3")
+kill_snd_1 = os.path.join("sounds", "kill_1.mp3")
+
 clicked = False
 
 
@@ -53,7 +60,7 @@ class Custom_button:
     hover_col = red
     click_col = (50, 150, 255)
     text_col = yellow
-    width = 180
+    width = 200
     height = 70
 
     def __init__(self, x, y, text, screen, font):
@@ -405,7 +412,10 @@ class Game_manager:
 
     def kill_check(self):
 
+        
         ptype, tempr, tempc = self.already_selected.ptype, self.already_selected.row, self.already_selected.column
+        
+        # capturing king needs to be updated - 4 cardinal point capture is yet to be designed
         
         if tempr < self.board.rows-2 :
             opp1 = self.current_board_status[tempr+1][tempc]
@@ -418,6 +428,7 @@ class Game_manager:
                             if piece.ptype == "k":
                                 self.king_captured = True
                             else:
+                                pg.mixer.Sound.play(pg.mixer.Sound(kill_snd_1))
                                 piece.kill()
                                 self.update_board_status()
                             break
@@ -433,6 +444,7 @@ class Game_manager:
                             if piece.ptype == "k" :
                                 self.king_captured = True
                             else:
+                                pg.mixer.Sound.play(pg.mixer.Sound(kill_snd_1))
                                 piece.kill()
                                 self.update_board_status()
                             break
@@ -448,6 +460,7 @@ class Game_manager:
                             if piece.ptype == "k":
                                 self.king_captured = True
                             else:
+                                pg.mixer.Sound.play(pg.mixer.Sound(kill_snd_1))
                                 piece.kill()
                                 self.update_board_status()
                             break
@@ -463,13 +476,18 @@ class Game_manager:
                             if piece.ptype == "k":
                                 self.king_captured = True
                             else:
+                                pg.mixer.Sound.play(pg.mixer.Sound(kill_snd_1))
                                 piece.kill()
                                 self.update_board_status()
                             break                
 
         if self.king_captured:
             self.finish = True
-
+            
+        
+    # def kill_check_helper(self, tempr, tempc):
+        
+    
     def escape_check(self):
 
         if self.current_board_status[0][0] == "k" or self.current_board_status[0][self.board.columns-1] == "k" or self.current_board_status[self.board.rows-1][0] == "k" or self.current_board_status[self.board.rows-1][self.board.columns-1] == "k":
@@ -550,6 +568,7 @@ class Game_manager:
                             self.already_selected.update_piece_position(
                                 self.valid_moves[ind][0], self.valid_moves[ind][1])
                             self.update_board_status()
+                            pg.mixer.Sound.play(pg.mixer.Sound(move_snd_1))
                             self.kill_check()
                             if self.already_selected.ptype == "k":
                                 self.escape_check()
@@ -583,12 +602,13 @@ def game_window(screen):
     while tafle:
         write_text("Play Vikings Chess", screen, (20, 20), (255, 255, 255),
                    pg.font.SysFont("Arial", 40))
-        backbtn = Custom_button(800, 20, "Back", screen,
+        backbtn = Custom_button(750, 20, "Back", screen,
                                 pg.font.SysFont("Arial", 30))
         restartbtn = Custom_button(
-            600, 20, "Restart", screen, pg.font.SysFont("Arial", 30))
+            525, 20, "Restart", screen, pg.font.SysFont("Arial", 30))
 
         if backbtn.draw_button():
+            pg.mixer.Sound.play(pg.mixer.Sound(click_snd))
             main()
 
         if restartbtn.draw_button():
@@ -629,10 +649,11 @@ def rules(screen):
     while tafle:
         write_text("Rules of Viking Chess", screen, (20, 20), (255, 255, 255),
                    pg.font.SysFont("Arial", 40))
-        backbtn = Custom_button(800, 20, "Back", screen,
+        backbtn = Custom_button(750, 20, "Back", screen,
                                 pg.font.SysFont("Arial", 30))
 
         if backbtn.draw_button():
+            pg.mixer.Sound.play(pg.mixer.Sound(click_snd))
             main()
 
         for event in pg.event.get():
@@ -649,10 +670,11 @@ def history(screen):
     while tafle:
         write_text("History", screen, (20, 20), (255, 255, 255),
                    pg.font.SysFont("Arial", 40))
-        backbtn = Custom_button(800, 20, "Back", screen,
+        backbtn = Custom_button(750, 20, "Back", screen,
                                 pg.font.SysFont("Arial", 30))
 
         if backbtn.draw_button():
+            pg.mixer.Sound.play(pg.mixer.Sound(click_snd))
             main()
 
         for event in pg.event.get():
@@ -669,6 +691,8 @@ def main():
     screen = pg.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
     pg.display.set_caption(GAME_NAME)
     pg.display.set_icon(GAME_ICON)
+    
+    icon_rect = GAME_ICON_resized.get_rect(center = (500, MAIN_MENU_TOP_BUTTON_y-150))
 
     game_on = True
 
@@ -693,21 +717,26 @@ def main():
         exitbtn = Custom_button(
             MAIN_MENU_TOP_BUTTON_x, MAIN_MENU_TOP_BUTTON_y + 300, "Exit", screen, btn_font)
 
-        if gamebtn.draw_button():
+        if gamebtn.draw_button():            
+            pg.mixer.Sound.play(pg.mixer.Sound(click_snd))
             game_window(screen)
 
         if rulesbtn.draw_button():
+            pg.mixer.Sound.play(pg.mixer.Sound(click_snd))
             rules(screen)
 
         if historybtn.draw_button():
+            pg.mixer.Sound.play(pg.mixer.Sound(click_snd))
             history(screen)
 
         if exitbtn.draw_button():
+            pg.mixer.Sound.play(pg.mixer.Sound(click_snd))
             game_on = False
             pg.quit()
 
         # click = False
-
+        
+        screen.blit(GAME_ICON_resized, (icon_rect))
         pg.display.update()
 
 
