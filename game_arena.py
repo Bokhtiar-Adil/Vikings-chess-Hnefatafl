@@ -289,30 +289,9 @@ class Game_manager:
 
     def select_piece(self, selected_piece):
 
-        # print("here 1")
-        # print(self.current_board_status)
-        if not self.is_selected and selected_piece != self.already_selected:
-            # print("here 2")
-            self.is_selected = True
-            self.already_selected = selected_piece
-            self.find_valid_moves()
-            # self.show_valid_moves()
-            # print(self.valid_moves)
-
-        elif self.is_selected and selected_piece != self.already_selected:
-            self.is_selected = True
-            self.already_selected = selected_piece
-            self.find_valid_moves()
-            # self.show_valid_moves()
-            # print(self.valid_moves)
-
-        elif self.is_selected:
-            self.is_selected = False
-            self.already_selected = None
-            self.valid_moves = []
-            self.valid_moves_positions = []
-
-        # print(self.valid_moves)
+        self.is_selected = True
+        self.already_selected = selected_piece
+        self.find_valid_moves()
 
     def find_valid_moves(self):
 
@@ -321,11 +300,12 @@ class Game_manager:
         tempr = self.already_selected.row
         tempc = self.already_selected.column
         # print(tempr, tempc)
-
+        
         tempr -= 1
         while tempr >= 0:
-
-            if self.current_board_status[tempr][tempc] != ".":
+            
+            thispos = self.current_board_status[tempr][tempc]
+            if thispos == "a" or thispos == "d" or thispos == "k":
                 break
             else:
                 if self.already_selected.ptype == "k":
@@ -333,7 +313,7 @@ class Game_manager:
                         break
                     self.valid_moves.append((tempr, tempc))
                 else:
-                    if (tempr, tempc) not in self.board.restricted_cells:
+                    if thispos == ".":
                         self.valid_moves.append((tempr, tempc))
 
             tempr -= 1
@@ -343,8 +323,9 @@ class Game_manager:
 
         tempr += 1
         while tempr < self.board.rows:
-
-            if self.current_board_status[tempr][tempc] != ".":
+            
+            thispos = self.current_board_status[tempr][tempc]
+            if thispos == "a" or thispos == "d" or thispos == "k":
                 break
             else:
                 if self.already_selected.ptype == "k":
@@ -352,7 +333,7 @@ class Game_manager:
                         break
                     self.valid_moves.append((tempr, tempc))
                 else:
-                    if (tempr, tempc) not in self.board.restricted_cells:
+                    if thispos == ".":
                         self.valid_moves.append((tempr, tempc))
 
             tempr += 1
@@ -362,8 +343,9 @@ class Game_manager:
 
         tempc -= 1
         while tempc >= 0:
-
-            if self.current_board_status[tempr][tempc] != ".":
+            
+            thispos = self.current_board_status[tempr][tempc]
+            if thispos == "a" or thispos == "d" or thispos == "k":
                 break
             else:
                 if self.already_selected.ptype == "k":
@@ -371,7 +353,7 @@ class Game_manager:
                         break
                     self.valid_moves.append((tempr, tempc))
                 else:
-                    if (tempr, tempc) not in self.board.restricted_cells:
+                    if thispos == ".":
                         self.valid_moves.append((tempr, tempc))
 
             tempc -= 1
@@ -381,8 +363,9 @@ class Game_manager:
 
         tempc += 1
         while tempc < self.board.columns:
-
-            if self.current_board_status[tempr][tempc] != ".":
+            
+            thispos = self.current_board_status[tempr][tempc]
+            if thispos == "a" or thispos == "d" or thispos == "k":
                 break
             else:
                 if self.already_selected.ptype == "k":
@@ -390,7 +373,7 @@ class Game_manager:
                         break
                     self.valid_moves.append((tempr, tempc))
                 else:
-                    if (tempr, tempc) not in self.board.restricted_cells:
+                    if thispos == ".":
                         self.valid_moves.append((tempr, tempc))
 
             tempc += 1
@@ -448,7 +431,7 @@ class Game_manager:
         for column in range(self.board.columns + 2):
             border.append("=")
         self.current_board_status_with_border.append(border)
-        
+
         for piece in All_pieces:
             self.current_board_status[piece.row][piece.column] = piece.ptype
             self.current_board_status_with_border[piece.row +
@@ -477,7 +460,7 @@ class Game_manager:
 
             # if self.king_captured:
             #     break
-            # print(prow,pcol,item)   
+            # print(prow,pcol,item)
             opp = self.current_board_status_with_border[item[0]][item[1]]
             try:
                 opp2 = self.current_board_status_with_border[two_hop_away[pos]
@@ -513,16 +496,15 @@ class Game_manager:
         if self.king_captured:
             self.finish = True
 
-
     def king_capture_check(self, kingr, kingc):
 
         front = self.current_board_status_with_border[kingr][kingc+1]
         back = self.current_board_status_with_border[kingr][kingc-1]
         up = self.current_board_status_with_border[kingr-1][kingc]
-        down = self.current_board_status_with_border[kingr+1][kingc]        
-        
+        down = self.current_board_status_with_border[kingr+1][kingc]
+
         print(front, back, up, down)
-        
+
         if front == "x" or back == "x" or up == "x" or down == "x":
             return
 
