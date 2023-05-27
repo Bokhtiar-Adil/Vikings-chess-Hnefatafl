@@ -29,11 +29,13 @@ green_neon = (15, 255, 80)
 green_dark = (2, 48, 32)
 green_teal = (0, 128, 128)
 blue_indigo = (63, 0, 255)
+blue_zaffre = (8, 24, 168)
 
 ATTACKER_PIECE_COLOR = pink_fuchsia
 DEFENDER_PIECE_COLOR = green_teal
 KING_PIECE_COLOR = golden
 VALID_MOVE_INDICATOR_COLOR = green_neon
+BORDER_COLOR = blue_zaffre
 
 GAME_ICON_resized = pg.image.load("images/vh_resized.jpg")
 
@@ -137,6 +139,19 @@ class ChessBoard:
             self.columns/2)), (self.rows-1, 0), (self.rows-1, self.columns-1)]
 
     def draw_empty_board(self):
+
+        border_top = pg.Rect(BOARD_LEFT - 10, BOARD_TOP -
+                             10, self.columns*CELL_WIDTH + 20, 10)
+        pg.draw.rect(self.screen, BORDER_COLOR, border_top)
+        border_down = pg.Rect(BOARD_LEFT - 10, BOARD_TOP +
+                              self.rows*CELL_HEIGHT, self.columns*CELL_WIDTH + 20, 10)
+        pg.draw.rect(self.screen, BORDER_COLOR, border_down)
+        border_left = pg.Rect(BOARD_LEFT - 10, BOARD_TOP -
+                              10, 10, self.rows*CELL_HEIGHT + 10)
+        pg.draw.rect(self.screen, BORDER_COLOR, border_left)
+        border_right = pg.Rect(BOARD_LEFT+self.columns*CELL_WIDTH,
+                               BOARD_TOP - 10, 10, self.rows*CELL_HEIGHT + 10)
+        pg.draw.rect(self.screen, BORDER_COLOR, border_right)
 
         color_flag = True
         for row in range(self.rows):
@@ -250,12 +265,27 @@ class Game_manager:
         self.valid_moves = []
         self.valid_moves_positions = []
         self.current_board_status = []
+        self.current_board_status_with_border = []
+
+        border = []
+        for column in range(self.board.columns + 2):
+            border.append("=")
+        self.current_board_status_with_border.append(border)
 
         for row in self.board.initial_pattern:
+            bordered_row = ["="]
             one_row = []
             for column in row:
                 one_row.append(column)
+                bordered_row.append(column)
             self.current_board_status.append(one_row)
+            bordered_row.append("=")
+            self.current_board_status_with_border.append(bordered_row)
+
+        border = []
+        for column in range(self.board.columns + 2):
+            border.append("=")
+        self.current_board_status_with_border.append(border)
 
     def select_piece(self, selected_piece):
 
@@ -391,103 +421,120 @@ class Game_manager:
     def update_board_status(self):
 
         self.current_board_status = []
+        self.current_board_status_with_border = []
+
+        border = []
+        for column in range(self.board.columns + 2):
+            border.append("=")
+        self.current_board_status_with_border.append(border)
 
         for row in range(self.board.rows):
+            bordered_row = ["="]
             one_row = []
             for column in range(self.board.columns):
                 one_row.append(".")
-            
+                bordered_row.append(".")
+
             if row == 0 or row == self.board.rows - 1:
                 one_row[0] = "x"
-                one_row[self.board.columns-1] = "x"            
+                one_row[self.board.columns-1] = "x"
+                bordered_row[1] = "x"
+                bordered_row[self.board.columns] = "x"
             self.current_board_status.append(one_row)
+            bordered_row.append("=")
+            self.current_board_status_with_border.append(bordered_row)
 
+        border = []
+        for column in range(self.board.columns + 2):
+            border.append("=")
+        self.current_board_status_with_border.append(border)
+        
         for piece in All_pieces:
             self.current_board_status[piece.row][piece.column] = piece.ptype
-        
+            self.current_board_status_with_border[piece.row +
+                                                  1][piece.column+1] = piece.ptype
+
         if self.current_board_status[int(self.board.rows/2)][int(self.board.columns/2)] != "k":
-            self.current_board_status[int(self.board.rows/2)][int(self.board.columns/2)] = "x"
-        
+            self.current_board_status[int(
+                self.board.rows/2)][int(self.board.columns/2)] = "x"
+            self.current_board_status_with_border[int(
+                self.board.rows/2)+1][int(self.board.columns/2)+1] = "x"
+
         # print(self.current_board_status)
 
-    def kill_check(self):
+    def capture_check(self):
 
-        
-        ptype, tempr, tempc = self.already_selected.ptype, self.already_selected.row, self.already_selected.column
-        
-        # capturing king needs to be updated - 4 cardinal point capture is yet to be designed
-        
-        if tempr < self.board.rows-2 :
-            opp1 = self.current_board_status[tempr+1][tempc]
-            opp2 = self.current_board_status[tempr+2][tempc]
-            
-            if not (opp1 == "." or opp1 == "x" or opp2 == "."):    
-                if (ptype == "a" and (opp2 == "a" or opp2 == "x") and ptype != opp1) or ((ptype == "d" or ptype == "k") and opp1 == "a" and opp2 != opp1):
+        ptype, prow, pcol = self.already_selected.ptype, self.already_selected.row + \
+            1, self.already_selected.column+1
+
+        sorroundings = [(prow, pcol+1), (prow, pcol-1),
+                        (prow-1, pcol), (prow+1, pcol)]
+        two_hop_away = [(prow, pcol+2), (prow, pcol-2),
+                        (prow-2, pcol), (prow+2, pcol)]
+
+        # out = False
+        for pos, item in enumerate(sorroundings):
+
+            # if self.king_captured:
+            #     break
+            # print(prow,pcol,item)   
+            opp = self.current_board_status_with_border[item[0]][item[1]]
+            try:
+                opp2 = self.current_board_status_with_border[two_hop_away[pos]
+                                                             [0]][two_hop_away[pos][1]]
+            except:
+                opp2 = "."
+
+            if ptype == opp or ptype == "x" or ptype == "=" or opp == "." or opp2 == ".":
+                continue
+
+            elif opp == "k":
+                self.king_capture_check(item[0], item[1])
+                print(self.king_captured)
+                # if self.king_captured:
+                #     out = True
+
+            elif ptype != opp:
+                if ptype == "a" and ptype == opp2:
                     for piece in All_pieces:
-                        if piece.ptype == opp1 and piece.row == tempr+1 and piece.column == tempc:
-                            if piece.ptype == "k":
-                                self.king_captured = True
-                            else:
-                                pg.mixer.Sound.play(pg.mixer.Sound(kill_snd_1))
-                                piece.kill()
-                                self.update_board_status()
-                            break
-            
-        if tempr > 1 :
-            opp1 = self.current_board_status[tempr-1][tempc]
-            opp2 = self.current_board_status[tempr-2][tempc]
-            
-            if not (opp1 == "." or opp1 == "x" or opp2 == "."):
-                if (ptype == "a" and (opp2 == "a" or opp2 == "x") and ptype != opp1) or ((ptype == "d" or ptype == "k") and opp1 == "a" and opp2 != opp1):
-                    for piece in All_pieces:
-                        if piece.ptype == opp1 and piece.row == tempr-1 and piece.column == tempc:
-                            if piece.ptype == "k" :
-                                self.king_captured = True
-                            else:
-                                pg.mixer.Sound.play(pg.mixer.Sound(kill_snd_1))
-                                piece.kill()
-                                self.update_board_status()
-                            break
-            
-        if tempc < self.board.columns - 2:
-            opp1 = self.current_board_status[tempr][tempc+1]
-            opp2 = self.current_board_status[tempr][tempc+2]
-            
-            if not (opp1 == "." or opp1 == "x" or opp2 == "."):
-                if (ptype == "a" and (opp2 == "a" or opp2 == "x") and ptype != opp1) or ((ptype == "d" or ptype == "k") and opp1 == "a" and opp2 != opp1):
-                    for piece in All_pieces:
-                        if piece.ptype == opp1 and piece.row == tempr and piece.column == tempc+1:
-                            if piece.ptype == "k":
-                                self.king_captured = True
-                            else:
-                                pg.mixer.Sound.play(pg.mixer.Sound(kill_snd_1))
-                                piece.kill()
-                                self.update_board_status()
+                        if piece.ptype == opp and piece.row == sorroundings[pos][0]-1 and piece.column == sorroundings[pos][1]-1:
+                            pg.mixer.Sound.play(pg.mixer.Sound(kill_snd_1))
+                            piece.kill()
+                            self.update_board_status()
                             break
 
-        if tempc > 1:
-            opp1 = self.current_board_status[tempr][tempc-1]
-            opp2 = self.current_board_status[tempr][tempc-2]
-            
-            if not (opp1 == "." or opp1 == "x" or opp2 == "."):
-                if (ptype == "a" and (opp2 == "a" or opp2 == "x") and ptype != opp1) or ((ptype == "d" or ptype == "k") and opp1 == "a" and opp2 != opp1):
+                elif ptype != "a" and opp2 != "a" and opp2 != "=" and opp == "a":
                     for piece in All_pieces:
-                        if piece.ptype == opp1 and piece.row == tempr and piece.column == tempc-1:
-                            if piece.ptype == "k":
-                                self.king_captured = True
-                            else:
-                                pg.mixer.Sound.play(pg.mixer.Sound(kill_snd_1))
-                                piece.kill()
-                                self.update_board_status()
-                            break                
-
+                        if piece.ptype == opp and piece.row == sorroundings[pos][0]-1 and piece.column == sorroundings[pos][1]-1:
+                            pg.mixer.Sound.play(pg.mixer.Sound(kill_snd_1))
+                            piece.kill()
+                            self.update_board_status()
+                            break
         if self.king_captured:
             self.finish = True
-            
+
+
+    def king_capture_check(self, kingr, kingc):
+
+        front = self.current_board_status_with_border[kingr][kingc+1]
+        back = self.current_board_status_with_border[kingr][kingc-1]
+        up = self.current_board_status_with_border[kingr-1][kingc]
+        down = self.current_board_status_with_border[kingr+1][kingc]        
         
-    # def kill_check_helper(self, tempr, tempc):
+        print(front, back, up, down)
         
-    
+        if front == "x" or back == "x" or up == "x" or down == "x":
+            return
+
+        elif front == "d" or back == "d" or up == "d" or down == "d":
+            return
+
+        elif front == "." or back == "." or up == "." or down == ".":
+            return
+
+        else:
+            self.king_captured = True
+
     def escape_check(self):
 
         if self.current_board_status[0][0] == "k" or self.current_board_status[0][self.board.columns-1] == "k" or self.current_board_status[self.board.rows-1][0] == "k" or self.current_board_status[self.board.rows-1][self.board.columns-1] == "k":
@@ -497,13 +544,11 @@ class Game_manager:
         else:
             self.king_escaped = False
 
-    
     def attackers_count_check(self):
-        
+
         if len(Attacker_pieces) == 0:
             self.all_attackers_killed = True
             self.finish = True
-    
 
     def blockade_check(self):
 
@@ -522,7 +567,7 @@ class Game_manager:
         elif self.all_attackers_dead:
             write_text("ALL ATTACKERS DEAD !! DEFENDERS WIN !!", self.screen, (300, BOARD_TOP + self.board.rows*CELL_HEIGHT + 50), green_neon,
                        pg.font.SysFont("Arial", 40), False)
-        
+
         else:
             pass
 
@@ -569,7 +614,7 @@ class Game_manager:
                                 self.valid_moves[ind][0], self.valid_moves[ind][1])
                             self.update_board_status()
                             pg.mixer.Sound.play(pg.mixer.Sound(move_snd_1))
-                            self.kill_check()
+                            self.capture_check()
                             if self.already_selected.ptype == "k":
                                 self.escape_check()
                             if self.already_selected != "a":
@@ -691,8 +736,9 @@ def main():
     screen = pg.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
     pg.display.set_caption(GAME_NAME)
     pg.display.set_icon(GAME_ICON)
-    
-    icon_rect = GAME_ICON_resized.get_rect(center = (500, MAIN_MENU_TOP_BUTTON_y-150))
+
+    icon_rect = GAME_ICON_resized.get_rect(
+        center=(500, MAIN_MENU_TOP_BUTTON_y-150))
 
     game_on = True
 
@@ -717,7 +763,7 @@ def main():
         exitbtn = Custom_button(
             MAIN_MENU_TOP_BUTTON_x, MAIN_MENU_TOP_BUTTON_y + 300, "Exit", screen, btn_font)
 
-        if gamebtn.draw_button():            
+        if gamebtn.draw_button():
             pg.mixer.Sound.play(pg.mixer.Sound(click_snd))
             game_window(screen)
 
@@ -735,7 +781,7 @@ def main():
             pg.quit()
 
         # click = False
-        
+
         screen.blit(GAME_ICON_resized, (icon_rect))
         pg.display.update()
 
