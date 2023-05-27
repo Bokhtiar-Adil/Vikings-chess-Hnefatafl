@@ -736,8 +736,10 @@ def main():
                    (255, 255, 255), pg.font.SysFont("Arial", 50))
 
         btn_font = pg.font.SysFont("Arial", 30)
-        gamebtn = Custom_button(
-            MAIN_MENU_TOP_BUTTON_x, MAIN_MENU_TOP_BUTTON_y, "Play", screen, btn_font)
+        gamebtn_1 = Custom_button(
+            MAIN_MENU_TOP_BUTTON_x - 110, MAIN_MENU_TOP_BUTTON_y, "Play vs Human", screen, btn_font)
+        gamebtn_2 = Custom_button(
+            MAIN_MENU_TOP_BUTTON_x + 110, MAIN_MENU_TOP_BUTTON_y, "Play vs AI", screen, btn_font)
         rulesbtn = Custom_button(
             MAIN_MENU_TOP_BUTTON_x, MAIN_MENU_TOP_BUTTON_y + 100, "Rules", screen, btn_font)
         historybtn = Custom_button(
@@ -745,9 +747,13 @@ def main():
         exitbtn = Custom_button(
             MAIN_MENU_TOP_BUTTON_x, MAIN_MENU_TOP_BUTTON_y + 300, "Exit", screen, btn_font)
 
-        if gamebtn.draw_button():
+        if gamebtn_1.draw_button():
             pg.mixer.Sound.play(pg.mixer.Sound(click_snd))
             game_window(screen)
+        
+        if gamebtn_2.draw_button():
+            pg.mixer.Sound.play(pg.mixer.Sound(click_snd))
+            # game_window(screen)
 
         if rulesbtn.draw_button():
             pg.mixer.Sound.play(pg.mixer.Sound(click_snd))
