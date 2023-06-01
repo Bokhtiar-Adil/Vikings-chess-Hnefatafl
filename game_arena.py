@@ -438,7 +438,7 @@ class Game_manager:
             counts currently unkilled attacker pieces.
         10. match_finished(): 
                 performs necessary tasks when match ends.
-        11. mouse_pos_analyzer(msx, msy): 
+        11. mouse_click_analyzer(msx, msy): 
                 analyzes current mouse click action and performs necessary functionalites.
         12. turn_msg(): 
                 displays info about whose turn it is. 
@@ -669,7 +669,7 @@ class Game_manager:
             border.append("=")
         self.current_board_status_with_border.append(border)
 
-        # first stting all cell as empty cell, then making change where necessary
+        # first setting all cells as empty cells, then making change where necessary
         for row in range(self.board.rows):
             bordered_row = ["="] # left border
             one_row = []
@@ -795,7 +795,8 @@ class Game_manager:
         up = self.current_board_status_with_border[kingr-1][kingc]
         down = self.current_board_status_with_border[kingr+1][kingc]
         
-        # if all four side has attackers or 3-attackers-one-border situation occurs, king is captured
+        # if all four side has attackers or 3-attackers-one-bordercell situation occurs, king is captured
+        # all other possible combos are discarded
         if front == "x" or back == "x" or up == "x" or down == "x":
             return
 
@@ -809,7 +810,16 @@ class Game_manager:
             self.king_captured = True
 
     def escape_check(self):
+        '''
+        This method checks if the king has escaped or not.
 
+        Returns
+        -------
+        None.
+
+        '''
+        
+        # (0,0), (0,n-1), (n-1,0), (n-1,n-1) cells are escape points for king in a n*n board
         if self.current_board_status[0][0] == "k" or self.current_board_status[0][self.board.columns-1] == "k" or self.current_board_status[self.board.rows-1][0] == "k" or self.current_board_status[self.board.rows-1][self.board.columns-1] == "k":
             self.king_escaped = True
             self.finish = True
@@ -818,7 +828,16 @@ class Game_manager:
             self.king_escaped = False
 
     def attackers_count_check(self):
+        '''
+        This method checks if all attackers are killed or not.
 
+        Returns
+        -------
+        None.
+
+        '''
+        # only way attackers would win is by capturing king, so it's not necessary to check defenders' count
+        # Attacker_pieces sprite group holds all attackers
         if len(Attacker_pieces) == 0:
             self.all_attackers_killed = True
             self.finish = True
@@ -828,6 +847,14 @@ class Game_manager:
         pass
 
     def match_finished(self):
+        '''
+        This method displays necessary messages when the match finishes.
+
+        Returns
+        -------
+        None.
+
+        '''
 
         if self.king_captured:
             write_text("KING CAPTURED !! ATTACKERS WIN !!", self.screen, (300, BOARD_TOP + self.board.rows*CELL_HEIGHT + 50), pink_fuchsia,
@@ -844,10 +871,28 @@ class Game_manager:
         else:
             pass
 
-    def mouse_pos_analyzer(self, msx, msy):
+    def mouse_click_analyzer(self, msx, msy):
+        '''
+        This method analyzes a mouse click event. This is the heart of Game_manager class.
 
+        Parameters
+        ----------
+        msx : integer
+            the row index of mouse clicked position.
+        msy : integer
+            the column index of mouse clicked position.
+
+        Returns
+        -------
+        None.
+
+        '''
+        # if no piece is selected before and the player selects a piece, the valid moves of that piece is displayed
         if not self.is_selected:
             for piece in All_pieces:
+                # collidepoint was not working (dunno why...). so, instead, made a custom logic
+                # if mouse click position is within a distant of radius of piece from the center of so, it means it is clicked
+                # iterates over all pieces to find out which piece satiefies such condition
                 if (msx >= piece.center[0] - PIECE_RADIUS) and (msx < piece.center[0] + PIECE_RADIUS):
                     if (msy >= piece.center[1] - PIECE_RADIUS) and (msy < piece.center[1] + PIECE_RADIUS):
                         if (piece.ptype == "a" and self.turn) or (piece.ptype != "a" and not self.turn):
@@ -857,18 +902,25 @@ class Game_manager:
                         break
 
         elif (self.already_selected.ptype != "a" and self.turn) or (self.already_selected.ptype == "a" and not self.turn):
+            # opponent piece is selected, so previously selected piece will be deselected
             self.deselect()
 
         else:
+            # some piece was selected previously
+            # gonna check multiple scenerioes serially; if any meets requirement, 'done' flag will stop checking more
             done = False
+            
             for piece in All_pieces:
                 if (msx >= piece.center[0] - PIECE_RADIUS) and (msx < piece.center[0] + PIECE_RADIUS):
                     if (msy >= piece.center[1] - PIECE_RADIUS) and (msy < piece.center[1] + PIECE_RADIUS):
                         done = True
                         if piece == self.already_selected:
+                            # previously selected piece is selected again, so it will be deselected
                             self.deselect()
                             break
                         else:
+                            # some other piece of same side is selected
+                            # so previous one will be deselected and current will be selected 
                             self.deselect()
                             if (piece.ptype == "a" and self.turn) or (piece.ptype != "a" and not self.turn):
                                 self.select_piece(piece)
@@ -877,19 +929,27 @@ class Game_manager:
                         break
 
             if not done:
-
+                # a valid move was selected for previously selected piece, so it will move to that new cell position
                 for ind, pos in enumerate(self.valid_moves_positions):
                     if (msx >= pos[0] - PIECE_RADIUS) and (msx < pos[0] + PIECE_RADIUS):
                         if (msy >= pos[1] - PIECE_RADIUS) and (msy < pos[1] + PIECE_RADIUS):
+                            # updating piece's position
                             self.already_selected.update_piece_position(
                                 self.valid_moves[ind][0], self.valid_moves[ind][1])
+                            # updating board status
                             self.update_board_status()
+                            # playing a sound effect
                             pg.mixer.Sound.play(pg.mixer.Sound(move_snd_1))
+                            # checking if any opponent piece was captured or not
                             self.capture_check()
+                            # checking if selected piece is king or not
+                            # if it is, then checking if it's escaped or not
                             if self.already_selected.ptype == "k":
                                 self.escape_check()
+                            # if it was defender's turn, checking if all of the attackers are captured or not
                             if self.already_selected != "a":
                                 self.attackers_count_check()
+                            # altering turn; a to d or d to a
                             self.turn = not self.turn
                             done = True
                             break
@@ -897,6 +957,14 @@ class Game_manager:
                 self.deselect()
 
     def turn_msg(self):
+        '''
+        This method shows message saying whose turn it is now.
+
+        Returns
+        -------
+        None.
+
+        '''
 
         if self.turn:
             write_text("Attacker's Turn", self.screen, (400, BOARD_TOP + self.board.rows*CELL_HEIGHT + 50), white,
@@ -907,7 +975,23 @@ class Game_manager:
 
 
 def game_window(screen, mode):
+    '''
+    This handles game.
 
+    Parameters
+    ----------
+    screen : surface
+        on which surface the game will be played.
+    mode : integer
+        0 means p vs p, 1 means p vs ai.
+
+    Returns
+    -------
+    None.
+
+    '''
+
+    # intializing some needed intances    
     match_specific_global_data()
     chessboard = ChessBoard(screen)
     chessboard.draw_empty_board()
@@ -945,7 +1029,7 @@ def game_window(screen, mode):
             if event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
                 msx, msy = pg.mouse.get_pos()
                 if not manager.finish:
-                    manager.mouse_pos_analyzer(msx, msy)
+                    manager.mouse_click_analyzer(msx, msy)
 
         for piece in All_pieces:
             piece.draw_piece(screen)
