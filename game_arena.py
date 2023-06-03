@@ -1,6 +1,7 @@
 import os
 import sys
 import pygame as pg
+import time
 
 
 WINDOW_HEIGHT = 800
@@ -49,7 +50,7 @@ clicked = False
 def write_text(text, screen, position, color, font, new_window=True):
     '''
     This function writes the given text at the given position on given surface applying th e given color and font.
-    
+
     Parameters
     ----------
     text : string
@@ -72,7 +73,7 @@ def write_text(text, screen, position, color, font, new_window=True):
     None.
 
     '''
-    
+
     if new_window:
         screen.fill(bg2)
     txtobj = font.render(text, True, (255, 255, 255))
@@ -82,13 +83,13 @@ def write_text(text, screen, position, color, font, new_window=True):
 
 
 class Custom_button:
-    
+
     '''
     This class holds the ncessary part of a custom button operation.
-    
-    
+
+
     '''
-    
+
     button_col = (26, 117, 255)
     hover_col = red
     click_col = (50, 150, 255)
@@ -148,9 +149,9 @@ class Custom_button:
 class ChessBoard:
     '''
     This class contains all properties of a chess board.
-    
+
     Properties:
-        
+
         1. initial_pattern: this parameter holds the position of pieces at the start of the match.
         2. rows: n(rows) on board
         3. columns: n(columns) on board
@@ -158,12 +159,12 @@ class ChessBoard:
         5. cell_height: height of each cell on surface
         6. screen: where the board will be printed
         7. restricted_cell: holds the (row, column) value of restricted cells
-        
+
     Methods:
-        
+
         1. draw_empty_board(): this method draws an empty board with no piece on given surface
         2. initiate_board_pieces(): this method initiates all the sprite instances of different types of pieces
-    
+
     '''
 
     def __init__(self, screen, board_size="large"):
@@ -252,15 +253,15 @@ class ChessBoard:
 class ChessPiece(pg.sprite.Sprite):
     '''
     This class contains information about each piece.
-    
+
     Properties:
         1. row: holds the row index of current piece instance
         2. column: holds the column index of current piece instance
         3. center: center position of corresponding piece instance
-    
+
     Methods:
         1. update_piece_position(row, column): if the corresponding piece instance is moved, this method updates row and column value of that piece.
-    
+
     '''
 
     def __init__(self, row, column):
@@ -284,7 +285,7 @@ class ChessPiece(pg.sprite.Sprite):
 class AttackerPiece(ChessPiece):
     '''
     This class holds information about attacker pieces. It's a child of ChessPiece class.
-    
+
     Properties:
         1. color: a rgb color code. e.g. (255,255,255)
             color of the attacker piece that will be drawn on board.
@@ -308,7 +309,7 @@ class AttackerPiece(ChessPiece):
 class DefenderPiece(ChessPiece):
     '''
     This class holds information about defender pieces. It's a child of ChessPiece class.
-    
+
     Properties:
         1. color: a rgb color code. e.g. (255,255,255)
             color of the attacker piece that will be drawn on board.
@@ -332,7 +333,7 @@ class DefenderPiece(ChessPiece):
 class KingPiece(DefenderPiece):
     '''
     This class holds information about attacker pieces. It's a child of DefenderPiece class.
-    
+
     Properties:
         1. color: a rgb color code. e.g. (255,255,255)
             color of the attacker piece that will be drawn on board.
@@ -356,7 +357,7 @@ class KingPiece(DefenderPiece):
 def match_specific_global_data():
     '''
     This function declares and initiates all sprite groups. 
-    
+
     Global Properties:
         1. All_pieces: a srpite group containing all pieces.
         2. Attacker_pieces: a srpite group containing all attacker pieces.
@@ -374,7 +375,7 @@ def match_specific_global_data():
     All_pieces = pg.sprite.Group()
     Attacker_pieces = pg.sprite.Group()
     Defender_pieces = pg.sprite.Group()
-    King_pieces = pg.sprite.Group()    
+    King_pieces = pg.sprite.Group()
 
     ChessPiece.groups = All_pieces
     AttackerPiece.groups = All_pieces, Attacker_pieces
@@ -385,9 +386,9 @@ def match_specific_global_data():
 class Game_manager:
     '''
     This class handles all the events within the game.
-    
+
     Properties:
-        
+
         1. screen: a pygame display or surface.
             holds the current screen where the game is played on.
         2. board: a ChessBoard object.
@@ -415,9 +416,11 @@ class Game_manager:
         13. current_board_status_with_border: a list of lists. 
                 this holds current positions of all pieces i.e. current board pattern along with border index. 
                 (this is redundent I know, but, it's needed for avoiding complexity)
-    
+        14. ai_selected: a ChessPiece object, or any of it's child class object.
+                this varaible holds currenlty selected piece by ai bot.
+
     Methods:
-        
+
         1. select_piece(selected_piece): 
             to select a piece.
         2. find_valid_moves(): 
@@ -433,7 +436,7 @@ class Game_manager:
         7. king_capture_check(): 
             contains caturing-king related logics.
         8. escape_check(): 
-            conatins king-escape related logics.
+            contains king-escape related logics.
         9. attackers_count_check(): 
             counts currently unkilled attacker pieces.
         10. match_finished(): 
@@ -442,7 +445,9 @@ class Game_manager:
                 analyzes current mouse click action and performs necessary functionalites.
         12. turn_msg(): 
                 displays info about whose turn it is. 
-            
+        13. ai_move_manager(piece, row, column):
+                handles ai moves
+
     '''
 
     def __init__(self, screen, board):
@@ -454,14 +459,15 @@ class Game_manager:
         self.all_attackers_killed = False
         self.finish = False
         self.already_selected = None
-        self.is_selected = False
+        self.is_selected = False        
         self.valid_moves = []
         self.valid_moves_positions = []
         self.current_board_status = []
         self.current_board_status_with_border = []
+        self.ai_selected = None
 
         # initiating current_board_status and current_board_status_with_border.
-        # initially board is in initial_pattern        
+        # initially board is in initial_pattern
         # appending top border row
         border = []
         for column in range(self.board.columns + 2):
@@ -470,13 +476,13 @@ class Game_manager:
 
         # appending according to initial_pattern
         for row in self.board.initial_pattern:
-            bordered_row = ["="] # to add a left border
+            bordered_row = ["="]  # to add a left border
             one_row = []
             for column in row:
                 one_row.append(column)
                 bordered_row.append(column)
             self.current_board_status.append(one_row)
-            bordered_row.append("=") # to add a right border
+            bordered_row.append("=")  # to add a right border
             self.current_board_status_with_border.append(bordered_row)
 
         # appending bottom border row
@@ -488,7 +494,7 @@ class Game_manager:
     def select_piece(self, selected_piece):
         '''
         This method selects a piece.
-        
+
         Parameters
         ----------
         selected_piece : a ChessPiece or it's child class object.
@@ -519,12 +525,13 @@ class Game_manager:
         tempr = self.already_selected.row
         tempc = self.already_selected.column
         # print(tempr, tempc)
-        
+
         # finding valid moves in upwards direction
         tempr -= 1
         while tempr >= 0:
-            
-            thispos = self.current_board_status[tempr][tempc] # stores current row and column
+
+            # stores current row and column
+            thispos = self.current_board_status[tempr][tempc]
             # if finds any piece, no move left in this direction anymore
             if thispos == "a" or thispos == "d" or thispos == "k":
                 break
@@ -547,8 +554,9 @@ class Game_manager:
         # finding valid moves in downwards direction
         tempr += 1
         while tempr < self.board.rows:
-            
-            thispos = self.current_board_status[tempr][tempc] # stores current row and column
+
+            # stores current row and column
+            thispos = self.current_board_status[tempr][tempc]
             # if finds any piece, no move left in this direction anymore
             if thispos == "a" or thispos == "d" or thispos == "k":
                 break
@@ -571,8 +579,9 @@ class Game_manager:
         # finding valid moves in left direction
         tempc -= 1
         while tempc >= 0:
-            
-            thispos = self.current_board_status[tempr][tempc] # stores current row and column
+
+            # stores current row and column
+            thispos = self.current_board_status[tempr][tempc]
             # if finds any piece, no move left in this direction anymore
             if thispos == "a" or thispos == "d" or thispos == "k":
                 break
@@ -592,11 +601,12 @@ class Game_manager:
         tempr = self.already_selected.row
         tempc = self.already_selected.column
 
-        # finding valid moves in right direction  
+        # finding valid moves in right direction
         tempc += 1
         while tempc < self.board.columns:
-            
-            thispos = self.current_board_status[tempr][tempc] # stores current row and column
+
+            # stores current row and column
+            thispos = self.current_board_status[tempr][tempc]
             # if finds any piece, no move left in this direction anymore
             if thispos == "a" or thispos == "d" or thispos == "k":
                 break
@@ -612,7 +622,7 @@ class Game_manager:
                         self.valid_moves.append((tempr, tempc))
 
             tempc += 1
-        
+
         # for each (row, column) index of each valid move, corresponding pixel position is stored
         for position in self.valid_moves:
             self.valid_moves_positions.append((BOARD_LEFT + int(CELL_WIDTH / 2) + position[1]*CELL_WIDTH,
@@ -627,7 +637,7 @@ class Game_manager:
         None.
 
         '''
-        
+
         # iterating over valid moves positions and drawing them on board
         for index in self.valid_moves_positions:
 
@@ -648,7 +658,6 @@ class Game_manager:
         self.already_selected = None
         self.valid_moves = []
         self.valid_moves_positions = []
-        
 
     def update_board_status(self):
         '''
@@ -671,7 +680,7 @@ class Game_manager:
 
         # first setting all cells as empty cells, then making change where necessary
         for row in range(self.board.rows):
-            bordered_row = ["="] # left border
+            bordered_row = ["="]  # left border
             one_row = []
             for column in range(self.board.columns):
                 one_row.append(".")
@@ -683,19 +692,19 @@ class Game_manager:
                 bordered_row[1] = "x"
                 bordered_row[self.board.columns] = "x"
             self.current_board_status.append(one_row)
-            bordered_row.append("=") # right border
+            bordered_row.append("=")  # right border
             self.current_board_status_with_border.append(bordered_row)
-        
+
         # adding bottom border
         border = []
         for column in range(self.board.columns + 2):
             border.append("=")
         self.current_board_status_with_border.append(border)
-        
+
         # according to each piece's positions, updating corresponding (row, column) value
         for piece in All_pieces:
             self.current_board_status[piece.row][piece.column] = piece.ptype
-            # adding an extra 1 because 0th row and 0th column is border 
+            # adding an extra 1 because 0th row and 0th column is border
             self.current_board_status_with_border[piece.row +
                                                   1][piece.column+1] = piece.ptype
 
@@ -718,39 +727,39 @@ class Game_manager:
         None.
 
         '''
-        # storing current piece's type and index 
+        # storing current piece's type and index
         ptype, prow, pcol = self.already_selected.ptype, self.already_selected.row + \
             1, self.already_selected.column+1
-        
+
         # indices of sorrounding one hop cells and two hops cells.
         sorroundings = [(prow, pcol+1), (prow, pcol-1),
                         (prow-1, pcol), (prow+1, pcol)]
         two_hop_away = [(prow, pcol+2), (prow, pcol-2),
                         (prow-2, pcol), (prow+2, pcol)]
 
-        # iterating over each neighbour cells and finding out if the piece of this cell is captured or not 
+        # iterating over each neighbour cells and finding out if the piece of this cell is captured or not
         for pos, item in enumerate(sorroundings):
 
             # currently selected cell's piece, if any
             opp = self.current_board_status_with_border[item[0]][item[1]]
             # if index is 1, which means it's right beside border, which means there's no two-hop cell in thi direction
-            # it may overflow the list index, so it will be set as empty cell instead to avoid error 
+            # it may overflow the list index, so it will be set as empty cell instead to avoid error
             try:
                 opp2 = self.current_board_status_with_border[two_hop_away[pos]
                                                              [0]][two_hop_away[pos][1]]
             except:
                 opp2 = "."
-            
+
             # if next cell is empty or has same type of piece or has border, no capturing is possible
             # if two hop cell is empty, then also no capturing is possible
             if ptype == opp or ptype == "x" or ptype == "=" or opp == "." or opp2 == ".":
-                continue            
-            
+                continue
+
             elif opp == "k":
-                # king needs 4 enemies on 4 cardinal points to be captured. so, handled in another function. 
+                # king needs 4 enemies on 4 cardinal points to be captured. so, handled in another function.
                 self.king_capture_check(item[0], item[1])
-                print(self.king_captured)                
-            
+                print(self.king_captured)
+
             elif ptype != opp:
                 # neghbour cell's piece is of different type
                 if ptype == "a" and (ptype == opp2 or opp2 == "x"):
@@ -794,7 +803,7 @@ class Game_manager:
         back = self.current_board_status_with_border[kingr][kingc-1]
         up = self.current_board_status_with_border[kingr-1][kingc]
         down = self.current_board_status_with_border[kingr+1][kingc]
-        
+
         # if all four side has attackers or 3-attackers-one-bordercell situation occurs, king is captured
         # all other possible combos are discarded
         if front == "x" or back == "x" or up == "x" or down == "x":
@@ -818,7 +827,7 @@ class Game_manager:
         None.
 
         '''
-        
+
         # (0,0), (0,n-1), (n-1,0), (n-1,n-1) cells are escape points for king in a n*n board
         if self.current_board_status[0][0] == "k" or self.current_board_status[0][self.board.columns-1] == "k" or self.current_board_status[self.board.rows-1][0] == "k" or self.current_board_status[self.board.rows-1][self.board.columns-1] == "k":
             self.king_escaped = True
@@ -897,7 +906,7 @@ class Game_manager:
                     if (msy >= piece.center[1] - PIECE_RADIUS) and (msy < piece.center[1] + PIECE_RADIUS):
                         if (piece.ptype == "a" and self.turn) or (piece.ptype != "a" and not self.turn):
                             self.select_piece(piece)
-                            # manager.show_valid_moves()                            
+                            # manager.show_valid_moves()
                             # print("Added")
                         break
 
@@ -909,7 +918,7 @@ class Game_manager:
             # some piece was selected previously
             # gonna check multiple scenerioes serially; if any meets requirement, 'done' flag will stop checking more
             done = False
-            
+
             for piece in All_pieces:
                 if (msx >= piece.center[0] - PIECE_RADIUS) and (msx < piece.center[0] + PIECE_RADIUS):
                     if (msy >= piece.center[1] - PIECE_RADIUS) and (msy < piece.center[1] + PIECE_RADIUS):
@@ -920,11 +929,11 @@ class Game_manager:
                             break
                         else:
                             # some other piece of same side is selected
-                            # so previous one will be deselected and current will be selected 
+                            # so previous one will be deselected and current will be selected
                             self.deselect()
                             if (piece.ptype == "a" and self.turn) or (piece.ptype != "a" and not self.turn):
                                 self.select_piece(piece)
-                                # manager.show_valid_moves()                                
+                                # manager.show_valid_moves()
                                 # print("Added")
                         break
 
@@ -947,7 +956,7 @@ class Game_manager:
                             if self.already_selected.ptype == "k":
                                 self.escape_check()
                             # if it was defender's turn, checking if all of the attackers are captured or not
-                            if self.already_selected != "a":
+                            if self.already_selected.ptype != "a":
                                 self.attackers_count_check()
                             # altering turn; a to d or d to a
                             self.turn = not self.turn
@@ -955,6 +964,27 @@ class Game_manager:
                             break
 
                 self.deselect()
+
+    def ai_move_manager(self, piece, row, column):
+
+        # updating piece's position
+        self.ai_selected = piece
+        self.ai_selected.update_piece_position(row, column)
+        # updating board status
+        self.update_board_status()
+        # playing a sound effect
+        pg.mixer.Sound.play(pg.mixer.Sound(move_snd_1))
+        # checking if any opponent piece was captured or not
+        self.capture_check()
+        # checking if selected piece is king or not
+        # if it is, then checking if it's escaped or not
+        if self.ai_selected.ptype == "k":
+            self.escape_check()
+        # if it was defender's turn, checking if all of the attackers are captured or not
+        if self.ai_selected.ptype != "a":
+            self.attackers_count_check()
+        # altering turn; a to d or d to a
+        self.turn = not self.turn
 
     def turn_msg(self):
         '''
@@ -974,6 +1004,144 @@ class Game_manager:
                        pg.font.SysFont("Arial", 30), False)
 
 
+class AI_manager:
+
+    def __init__(self, manager, screen):
+
+        self.manager = manager
+        self.screen = screen
+
+    def move(self):
+        # find all possible valid move and return -> list[piece, (pair of indices)]
+        moves = self.find_all_possible_valid_moves()
+        # select the best move. implement algorithm here
+        piece, best_move = self.find_best_move(moves)
+        # perform the move
+        self.manager.ai_move_manager(piece, best_move)
+    
+    def find_all_possible_valid_moves(self):
+        
+        valid_moves = []
+        for piece in Attacker_pieces:
+            # print("here 3")            
+            tempr = piece.row
+            tempc = piece.column
+            # print(tempr, tempc)
+
+            # finding valid moves in upwards direction
+            tempr -= 1
+            while tempr >= 0:
+
+                # stores current row and column
+                thispos = self.manager.current_board_status[tempr][tempc]
+                # if finds any piece, no move left in this direction anymore
+                if thispos == "a" or thispos == "d" or thispos == "k":
+                    break
+                else:
+                    # this part is commented out because so far ai is only attacker and this part checks both 'a' or 'd'
+                    # # if selected piece is king, only one move per direction is allowed
+                    # if piece.ptype == "k":
+                    #     if tempr < piece.row - 1 or tempr > piece.row + 1:
+                    #         break
+                    #     valid_moves.append((piece, (tempr, tempc)))
+                    # else:
+                    #     # "." means empty cell
+                    #     if thispos == ".":
+                    #         valid_moves.append((piece, (tempr, tempc)))
+                    if thispos == ".":
+                            valid_moves.append((piece, (tempr, tempc)))
+
+                tempr -= 1
+
+            tempr = piece.row
+            tempc = piece.column
+
+            # finding valid moves in downwards direction
+            tempr += 1
+            while tempr < self.manager.board.rows:
+
+                # stores current row and column
+                thispos = self.manager.current_board_status[tempr][tempc]
+                # if finds any piece, no move left in this direction anymore
+                if thispos == "a" or thispos == "d" or thispos == "k":
+                    break
+                else:
+                    # # if selected piece is king, only one move per direction is allowed
+                    # if piece.ptype == "k":
+                    #     if tempr < piece.row - 1 or tempr > piece.row + 1:
+                    #         break
+                    #     valid_moves.append((piece, (tempr, tempc)))
+                    # else:
+                    #     # "." means empty cell
+                    #     if thispos == ".":
+                    #         valid_moves.append((piece, (tempr, tempc)))
+                    if thispos == ".":
+                            valid_moves.append((piece, (tempr, tempc)))
+
+                tempr += 1
+
+            tempr = piece.row
+            tempc = piece.column
+
+            # finding valid moves in left direction
+            tempc -= 1
+            while tempc >= 0:
+
+                # stores current row and column
+                thispos = self.manager.current_board_status[tempr][tempc]
+                # if finds any piece, no move left in this direction anymore
+                if thispos == "a" or thispos == "d" or thispos == "k":
+                    break
+                else:
+                    # # if selected piece is king, only one move per direction is allowed
+                    # if piece.ptype == "k":
+                    #     if tempc < piece.column - 1 or tempc > piece.column + 1:
+                    #         break
+                    #     valid_moves.append((piece, (tempr, tempc)))
+                    # else:
+                    #     # "." means empty cell
+                    #     if thispos == ".":
+                    #         valid_moves.append((piece, (tempr, tempc)))
+                    if thispos == ".":
+                            valid_moves.append((piece, (tempr, tempc)))
+
+                tempc -= 1
+
+            tempr = piece.row
+            tempc = piece.column
+
+            # finding valid moves in right direction
+            tempc += 1
+            while tempc < self.manager.board.columns:
+
+                # stores current row and column
+                thispos = self.manager.current_board_status[tempr][tempc]
+                # if finds any piece, no move left in this direction anymore
+                if thispos == "a" or thispos == "d" or thispos == "k":
+                    break
+                else:
+                    # # if selected piece is king, only one move per direction is allowed
+                    # if piece.ptype == "k":
+                    #     if tempc < piece.column - 1 or tempc > piece.column + 1:
+                    #         break
+                    #     valid_moves.append((piece, (tempr, tempc)))
+                    # else:
+                    #     # "." means empty cell
+                    #     if thispos == ".":
+                    #         valid_moves.append((piece, (tempr, tempc)))
+                    if thispos == ".":
+                            valid_moves.append((piece, (tempr, tempc)))
+
+                tempc += 1
+
+        return valid_moves
+    
+    def find_best_move(self, moves):
+        
+        pass
+        
+
+
 def game_window(screen, mode):
     '''
     This handles game.
@@ -991,12 +1159,14 @@ def game_window(screen, mode):
 
     '''
 
-    # intializing some needed intances    
+    # intializing some needed intances
     match_specific_global_data()
     chessboard = ChessBoard(screen)
     chessboard.draw_empty_board()
     chessboard.initiate_board_pieces()
     manager = Game_manager(screen, chessboard)
+    if mode == 1:
+        bot = AI_manager(manager, screen)
 
     tafle = True
     while tafle:
@@ -1005,7 +1175,7 @@ def game_window(screen, mode):
         backbtn = Custom_button(750, 20, "Back", screen,
                                 pg.font.SysFont("Arial", 30))
         restartbtn = Custom_button(
-            525, 20, "Restart", screen, pg.font.SysFont("Arial", 30))
+            525, 20, "New Game", screen, pg.font.SysFont("Arial", 30))
 
         if backbtn.draw_button():
             pg.mixer.Sound.play(pg.mixer.Sound(click_snd))
@@ -1029,8 +1199,15 @@ def game_window(screen, mode):
             if event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
                 msx, msy = pg.mouse.get_pos()
                 if not manager.finish:
-                    manager.mouse_click_analyzer(msx, msy)
+                    if mode == 0:
+                        manager.mouse_click_analyzer(msx, msy)
+                    else:
+                        if manager.turn == False:
+                            manager.mouse_click_analyzer(msx, msy)
 
+        if mode==1 and manager.turn:
+            time.sleep(1)
+            bot.move()
         for piece in All_pieces:
             piece.draw_piece(screen)
 
@@ -1122,11 +1299,11 @@ def main():
 
         if gamebtn_1.draw_button():
             pg.mixer.Sound.play(pg.mixer.Sound(click_snd))
-            game_window(screen, mode = 0)
-        
+            game_window(screen, mode=0)
+
         if gamebtn_2.draw_button():
             pg.mixer.Sound.play(pg.mixer.Sound(click_snd))
-            game_window(screen, mode = 1)
+            game_window(screen, mode=1)
 
         if rulesbtn.draw_button():
             pg.mixer.Sound.play(pg.mixer.Sound(click_snd))
