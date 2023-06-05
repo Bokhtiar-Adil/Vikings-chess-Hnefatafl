@@ -237,15 +237,21 @@ class ChessBoard:
         None.
 
         '''
-
+        att_cnt, def_cnt = 1,1
+        
         for row in range(self.rows):
             for column in range(self.columns):
                 if self.initial_pattern[row][column] == 'a':
-                    AttackerPiece(row, column)
+                    pid = "a" + str(att_cnt)
+                    AttackerPiece(pid, row, column)
+                    att_cnt += 1
                 elif self.initial_pattern[row][column] == 'd':
-                    DefenderPiece(row, column)
+                    pid = "d" + str(def_cnt)
+                    DefenderPiece(pid, row, column)
+                    def_cnt += 1
                 elif self.initial_pattern[row][column] == 'c':
-                    KingPiece(row, column)
+                    pid = "k"
+                    KingPiece(pid, row, column)                    
                 else:
                     pass
 
@@ -255,21 +261,24 @@ class ChessPiece(pg.sprite.Sprite):
     This class contains information about each piece.
 
     Properties:
-        1. row: holds the row index of current piece instance
-        2. column: holds the column index of current piece instance
-        3. center: center position of corresponding piece instance
+        1. pid: holds a unique id for currnet piece instance
+        2. row: holds the row index of current piece instance
+        3. column: holds the column index of current piece instance
+        4. center: center position of corresponding piece instance
 
     Methods:
         1. update_piece_position(row, column): if the corresponding piece instance is moved, this method updates row and column value of that piece.
 
     '''
 
-    def __init__(self, row, column):
+    def __init__(self, pid, row, column):
 
         pg.sprite.Sprite.__init__(self, self.groups)
+        self.pid = pid
         self.row, self.column = (row, column)
         self.center = (BOARD_LEFT + int(CELL_WIDTH / 2) + self.column*CELL_WIDTH,
                        BOARD_TOP + int(CELL_HEIGHT / 2) + self.row*CELL_HEIGHT)
+        
 
     def draw_piece(self, screen):
 
@@ -298,8 +307,8 @@ class AttackerPiece(ChessPiece):
             tells whether the current piece is allowed on a restricted cell or not. here it's false.
     '''
 
-    def __init__(self, row, column):
-        ChessPiece.__init__(self, row, column)
+    def __init__(self, pid, row, column):
+        ChessPiece.__init__(self, pid, row, column)
         pg.sprite.Sprite.__init__(self, self.groups)
         self.color = ATTACKER_PIECE_COLOR
         self.permit_to_res_sp = False
@@ -322,8 +331,8 @@ class DefenderPiece(ChessPiece):
             tells whether the current piece is allowed on a restricted cell or not. here it's false.
     '''
 
-    def __init__(self, row, column):
-        ChessPiece.__init__(self, row, column)
+    def __init__(self, pid, row, column):
+        ChessPiece.__init__(self, pid, row, column)
         pg.sprite.Sprite.__init__(self, self.groups)
         self.color = DEFENDER_PIECE_COLOR
         self.permit_to_res_sp = False
@@ -346,8 +355,8 @@ class KingPiece(DefenderPiece):
             tells whether the current piece is allowed on a restricted cell or not. here it's true.
     '''
 
-    def __init__(self, row, column):
-        DefenderPiece.__init__(self, row, column)
+    def __init__(self, pid, row, column):
+        DefenderPiece.__init__(self, pid, row, column)
         pg.sprite.Sprite.__init__(self, self.groups)
         self.color = KING_PIECE_COLOR
         self.permit_to_res_sp = True
@@ -459,7 +468,7 @@ class Game_manager:
         self.all_attackers_killed = False
         self.finish = False
         self.already_selected = None
-        self.is_selected = False        
+        self.is_selected = False
         self.valid_moves = []
         self.valid_moves_positions = []
         self.current_board_status = []
@@ -1010,20 +1019,24 @@ class AI_manager:
 
         self.manager = manager
         self.screen = screen
+        
 
     def move(self):
+        
         # find all possible valid move and return -> list[piece, (pair of indices)]
         moves = self.find_all_possible_valid_moves()
         # select the best move. implement algorithm here
         piece, best_move = self.find_best_move(moves)
         # perform the move
         self.manager.ai_move_manager(piece, best_move)
-    
-    def find_all_possible_valid_moves(self):
-        
+
+    def find_all_possible_valid_moves(self, board_status_at_this_state, fake_turn):
+
         valid_moves = []
-        for piece in Attacker_pieces:
-            # print("here 3")            
+        for piece in All_pieces:
+            if (fake_turn and not piece.ptype == "a") or (not fake_turn and piece.ptype == "a"):
+                continue
+            # print("here 3")
             tempr = piece.row
             tempc = piece.column
             # print(tempr, tempc)
@@ -1033,22 +1046,20 @@ class AI_manager:
             while tempr >= 0:
 
                 # stores current row and column
-                thispos = self.manager.current_board_status[tempr][tempc]
+                thispos = board_status_at_this_state[tempr][tempc]
                 # if finds any piece, no move left in this direction anymore
                 if thispos == "a" or thispos == "d" or thispos == "k":
                     break
                 else:
                     # this part is commented out because so far ai is only attacker and this part checks both 'a' or 'd'
                     # # if selected piece is king, only one move per direction is allowed
-                    # if piece.ptype == "k":
-                    #     if tempr < piece.row - 1 or tempr > piece.row + 1:
-                    #         break
-                    #     valid_moves.append((piece, (tempr, tempc)))
-                    # else:
-                    #     # "." means empty cell
-                    #     if thispos == ".":
-                    #         valid_moves.append((piece, (tempr, tempc)))
-                    if thispos == ".":
+                    if piece.ptype == "k":
+                        if tempr < piece.row - 1 or tempr > piece.row + 1:
+                            break
+                        valid_moves.append((piece, (tempr, tempc)))
+                    else:
+                        # "." means empty cell
+                        if thispos == ".":
                             valid_moves.append((piece, (tempr, tempc)))
 
                 tempr -= 1
@@ -1061,21 +1072,19 @@ class AI_manager:
             while tempr < self.manager.board.rows:
 
                 # stores current row and column
-                thispos = self.manager.current_board_status[tempr][tempc]
+                thispos = board_status_at_this_state[tempr][tempc]
                 # if finds any piece, no move left in this direction anymore
                 if thispos == "a" or thispos == "d" or thispos == "k":
                     break
                 else:
                     # # if selected piece is king, only one move per direction is allowed
-                    # if piece.ptype == "k":
-                    #     if tempr < piece.row - 1 or tempr > piece.row + 1:
-                    #         break
-                    #     valid_moves.append((piece, (tempr, tempc)))
-                    # else:
-                    #     # "." means empty cell
-                    #     if thispos == ".":
-                    #         valid_moves.append((piece, (tempr, tempc)))
-                    if thispos == ".":
+                    if piece.ptype == "k":
+                        if tempr < piece.row - 1 or tempr > piece.row + 1:
+                            break
+                        valid_moves.append((piece, (tempr, tempc)))
+                    else:
+                        # "." means empty cell
+                        if thispos == ".":
                             valid_moves.append((piece, (tempr, tempc)))
 
                 tempr += 1
@@ -1088,21 +1097,19 @@ class AI_manager:
             while tempc >= 0:
 
                 # stores current row and column
-                thispos = self.manager.current_board_status[tempr][tempc]
+                thispos = board_status_at_this_state[tempr][tempc]
                 # if finds any piece, no move left in this direction anymore
                 if thispos == "a" or thispos == "d" or thispos == "k":
                     break
                 else:
                     # # if selected piece is king, only one move per direction is allowed
-                    # if piece.ptype == "k":
-                    #     if tempc < piece.column - 1 or tempc > piece.column + 1:
-                    #         break
-                    #     valid_moves.append((piece, (tempr, tempc)))
-                    # else:
-                    #     # "." means empty cell
-                    #     if thispos == ".":
-                    #         valid_moves.append((piece, (tempr, tempc)))
-                    if thispos == ".":
+                    if piece.ptype == "k":
+                        if tempc < piece.column - 1 or tempc > piece.column + 1:
+                            break
+                        valid_moves.append((piece, (tempr, tempc)))
+                    else:
+                        # "." means empty cell
+                        if thispos == ".":
                             valid_moves.append((piece, (tempr, tempc)))
 
                 tempc -= 1
@@ -1115,31 +1122,39 @@ class AI_manager:
             while tempc < self.manager.board.columns:
 
                 # stores current row and column
-                thispos = self.manager.current_board_status[tempr][tempc]
+                thispos = board_status_at_this_state[tempr][tempc]
                 # if finds any piece, no move left in this direction anymore
                 if thispos == "a" or thispos == "d" or thispos == "k":
                     break
                 else:
                     # # if selected piece is king, only one move per direction is allowed
-                    # if piece.ptype == "k":
-                    #     if tempc < piece.column - 1 or tempc > piece.column + 1:
-                    #         break
-                    #     valid_moves.append((piece, (tempr, tempc)))
-                    # else:
-                    #     # "." means empty cell
-                    #     if thispos == ".":
-                    #         valid_moves.append((piece, (tempr, tempc)))
-                    if thispos == ".":
+                    if piece.ptype == "k":
+                        if tempc < piece.column - 1 or tempc > piece.column + 1:
+                            break
+                        valid_moves.append((piece, (tempr, tempc)))
+                    else:
+                        # "." means empty cell
+                        if thispos == ".":
                             valid_moves.append((piece, (tempr, tempc)))
 
                 tempc += 1
 
         return valid_moves
-    
+
+    def fake_move(self, fake_board_status_at_this_state, piece_pos_at_this_state, best_move_at_this_state):
+        
+        for each in piece_pos_at_this_state:
+            if each[0].pid == best_move_at_this_state[0].pid:
+                fake_board_status_at_this_state[each[1][0]][each[1][1]] = "."
+                each[1][0], each[1][1] = best_move_at_this_state[1][0], best_move_at_this_state[1][1]
+                fake_board_status_at_this_state[each[1][0]][each[1][1]] = each[0].ptype
+                break
+        
+            
+
     def find_best_move(self, moves):
-        
+
         pass
-        
 
 
 def game_window(screen, mode):
@@ -1205,7 +1220,7 @@ def game_window(screen, mode):
                         if manager.turn == False:
                             manager.mouse_click_analyzer(msx, msy)
 
-        if mode==1 and manager.turn:
+        if mode == 1 and manager.turn:
             time.sleep(1)
             bot.move()
         for piece in All_pieces:
