@@ -1136,9 +1136,79 @@ class AI_manager:
 
         return valid_moves
     
-    def find_best_move(self, moves):
+    def minimax(fake_board,alpha,beta,max_depth,turn):
+        bestvalue=-10000000
+        moves = self.find_all_possible_valid_moves(True)  #True attacker ,False Defender
+        if(maxdepth==0 or boardstate.gameOver()):
+             return evaluate(fake_board)
+         
+        '''fake board is copied into current board'''
+        current_board = []
+        for row in range(len(fake_board)):
+            one_row = []
+            for column in range(len(fake_board[0])):
+                one_row.append(".")
+            current_board.append(one_row)
         
-        pass
+        for row_index, row in enumerate(fake_board):
+            for col_index, column in enumerate(fake_board):
+                current_board[row_index][col_index] = column
+                
+                
+        if(turn==True):#attacker  maximizer
+            bestvalue=-10000000
+            for i in moves:
+                tmp_fake_board=fake_move(current_board,moves)
+                value=minimax(tmp_fake_board,alpha,beta,max_depth-1,False)
+                bestvalue=max(value,bestvalue)
+                alpha=max(alpha,value)
+                if(beta<=alpha):
+                    break
+                
+        else:  #defender minimizer
+            bestvalue=10000000
+            for i in moves:
+                tmp_fake_board=fake_move(current_board,moves)
+                value=minimax(tmp_fake_board,alpha,beta,max_depth-1,False)
+                bestvalue=min(value,bestvalue)
+                beta=min(beta,value)
+                if(beta<=alpha):
+                    break
+        
+        
+    def strategy():
+        player=   #define who is player
+        opponent= #define who is current oppnent
+        bestvalue=-1000000  #value to calcaute the move with best minimax value
+        
+        moves = self.find_all_possible_valid_moves(True)  #True attacker ,False Defender
+        
+        current_board = []
+        for row in range(self.manager.board.rows):
+            one_row = []
+            for column in range(self.manager.board.columns):
+                one_row.append(".")
+            current_board.append(one_row)
+        
+        for row_index, row in enumerate(self.manager.current_board_status):
+            for col_index, column in enumerate(self.manager.current_board_status):
+                current_board[row_index][col_index] = column
+
+
+        
+        for i in moves:   # iterate all possible valid moves and their corersponding min max value
+            fake_board=fake_move(current_board,moves)
+            value=minimax(fake_board,-10000000,10000000,max_depth,True)
+            if(value>bestvalue):
+                bestmove=i
+                bestvalue=value
+                
+    
+    def find_best_move(self, moves):
+        best_move=strategy()
+        
+        return best_move
+      
         
 
 
