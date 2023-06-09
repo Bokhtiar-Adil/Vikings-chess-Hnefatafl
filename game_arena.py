@@ -94,15 +94,15 @@ class Custom_button:
     hover_col = red
     click_col = (50, 150, 255)
     text_col = yellow
-    width = 200
-    height = 70
-
-    def __init__(self, x, y, text, screen, font):
+    
+    def __init__(self, x, y, text, screen, font, width = 200, height = 70):
         self.x = x
         self.y = y
         self.text = text
         self.screen = screen
         self.font = font
+        self.width = width
+        self.height = height
 
     def draw_button(self):
 
@@ -238,6 +238,8 @@ class ChessBoard:
 
         '''
         att_cnt, def_cnt = 1, 1
+        global piece_pid_map
+        piece_pid_map = {}
 
         for row in range(self.rows):
             for column in range(self.columns):
@@ -254,6 +256,9 @@ class ChessBoard:
                     KingPiece(pid, row, column)
                 else:
                     pass
+
+        for piece in All_pieces:
+            piece_pid_map[piece.pid] = piece
 
 
 class ChessPiece(pg.sprite.Sprite):
@@ -275,7 +280,7 @@ class ChessPiece(pg.sprite.Sprite):
 
         pg.sprite.Sprite.__init__(self, self.groups)
         self.pid = pid
-        self.row, self.column = (row, column)
+        self.row, self.column = (row, column)        
         self.center = (BOARD_LEFT + int(CELL_WIDTH / 2) + self.column*CELL_WIDTH,
                        BOARD_TOP + int(CELL_HEIGHT / 2) + self.row*CELL_HEIGHT)
 
@@ -285,6 +290,7 @@ class ChessPiece(pg.sprite.Sprite):
 
     def update_piece_position(self, row, column):
 
+        self.row_prev, self.column_prev = self.row, self.column
         self.row, self.column = (row, column)
         self.center = (BOARD_LEFT + int(CELL_WIDTH / 2) + self.column*CELL_WIDTH,
                        BOARD_TOP + int(CELL_HEIGHT / 2) + self.row*CELL_HEIGHT)
@@ -472,7 +478,7 @@ class Game_manager:
         self.valid_moves_positions = []
         self.current_board_status = []
         self.current_board_status_with_border = []
-        self.ai_selected = None
+        
 
         # initiating current_board_status and current_board_status_with_border.
         # initially board is in initial_pattern
@@ -766,7 +772,7 @@ class Game_manager:
             elif opp == "k":
                 # king needs 4 enemies on 4 cardinal points to be captured. so, handled in another function.
                 self.king_capture_check(item[0], item[1])
-                print(self.king_captured)
+                # print(self.king_captured)
 
             elif ptype != opp:
                 # neghbour cell's piece is of different type
@@ -974,24 +980,28 @@ class Game_manager:
                 self.deselect()
 
     def ai_move_manager(self, piece, row, column):
+
         # updating piece's position
-        self.ai_selected = piece
-        self.ai_selected.update_piece_position(row, column)
+        self.already_selected = piece
+        self.already_selected.update_piece_position(row, column)
         # updating board status
         self.update_board_status()
         # playing a sound effect
         pg.mixer.Sound.play(pg.mixer.Sound(move_snd_1))
+        # self.already_selected = self.ai_selected
         # checking if any opponent piece was captured or not
         self.capture_check()
         # checking if selected piece is king or not
         # if it is, then checking if it's escaped or not
-        if self.ai_selected.ptype == "k":
+        if self.already_selected.ptype == "k":
             self.escape_check()
         # if it was defender's turn, checking if all of the attackers are captured or not
-        if self.ai_selected.ptype != "a":
+        if self.already_selected.ptype != "a":
             self.attackers_count_check()
         # altering turn; a to d or d to a
         self.turn = not self.turn
+        self.deselect()
+
 
     def turn_msg(self):
         '''
@@ -1017,14 +1027,13 @@ class AI_manager:
 
         self.manager = manager
         self.screen = screen
-        self.cnt=0
 
     def move(self):
 
         current_board = []
         rows = self.manager.board.rows
         columns = self.manager.board.columns
-        
+
         '''
         creating patten such as
         [['x', '.', '.', 'a1', 'a2', 'a3', 'a4', 'a5', '.', '.', 'x'], 
@@ -1039,43 +1048,64 @@ class AI_manager:
          ['.', '.', '.', '.', '.', 'a19', '.', '.', '.', '.', '.'], 
          ['x', '.', '.', 'a20', 'a21', 'a22', 'a23', 'a24', '.', '.', 'x']]
         '''
+
+            
         
-        
+        current_board = []
+
+        one_row = []
+        for column in range(columns+2):
+            one_row.append("=")
+        current_board.append(one_row)
+
         for row in range(rows):
-            one_row = []
+            one_row = ["="]
             for column in range(columns):
-                if (row == 0 and column == 0) or (row == 0 and column == columns-1) or (row == rows-1 and column == 0) or (row == rows-1 and column == columns-1):
-                    # restricted cells (0,0),(0,n-1),(n-1,0),(n-1,n-1) for a n by n board
-                    one_row.append("x")
-                else:
-                    one_row.append(".")
+                one_row.append('.')
+            one_row.append("=")
             current_board.append(one_row)
+       
         
+        one_row = []
+        for column in range(columns+2):
+            one_row.append("=")
+        current_board.append(one_row)
+        
+
         for piece in All_pieces:
             current_board[piece.row][piece.column] = piece.pid
-        
             
+        current_board[1][1]=current_board[1][rows]=current_board[rows][1]=current_board[rows][columns]='x'
+        
+        print(current_board)
+
         # find all possible valid move and return -> list[piece, (pair of indices)]
         moves = self.find_all_possible_valid_moves(current_board, True)
-        # find the best move among all possible moves 
-        piece, best_move= self.find_best_move(current_board, moves)
-        
-        row,col=best_move #change
-        
+        # select the best move. implement algorithm here
+        piece, best_move = self.find_best_move(current_board, moves)
+        # print(best_move)
+        row, col = best_move  # change
+
         # perform the move
-        self.manager.ai_move_manager(piece, row,col) #change #call this function for actual movement 
+        self.manager.ai_move_manager(piece, row, col)
 
     def find_all_possible_valid_moves(self, board_status_at_this_state, fake_turn):
 
         valid_moves = []
         # needs a list of pair containing the fake pos of pieces at current fake state
+        piece_pos_this_state = []
+        for row_ind, row in enumerate(board_status_at_this_state):
+            for col_ind, column in enumerate(row):
+                if column != "." or column != "x":
+                    piece_pos_this_state.append((column, (row_ind, col_ind)))
 
-        for piece in All_pieces:
-            if (fake_turn and not piece.ptype == "a") or (not fake_turn and piece.ptype == "a"):
+        for each in piece_pos_this_state:
+            piece = each[0]
+            if (fake_turn and not piece[0] == "a") or (not fake_turn and piece[0] == "a"):
                 continue
             # print("here 3")
-            tempr = piece.row
-            tempc = piece.column
+            tempr = each[1][0]
+            tempc = each[1][1]
             # print(tempr, tempc)
 
             # finding valid moves in upwards direction
@@ -1090,19 +1120,23 @@ class AI_manager:
                 else:
                     # this part is commented out because so far ai is only attacker and this part checks both 'a' or 'd'
                     # # if selected piece is king, only one move per direction is allowed
-                    if piece.ptype == "k":
-                        if tempr < piece.row - 1 or tempr > piece.row + 1:
+                    if piece == "k":
+                        if tempr < each[1][0] - 1 or tempr > each[1][0] + 1:
                             break
-                        valid_moves.append((piece, (tempr, tempc)))
+                        # valid_moves.append((piece, (tempr, tempc)))
+                        valid_moves.append(
+                            (piece_pid_map[piece], (tempr, tempc)))
                     else:
                         # "." means empty cell
                         if thispos == ".":
-                            valid_moves.append((piece, (tempr, tempc)))
+                            # valid_moves.append((piece, (tempr, tempc)))
+                            valid_moves.append(
+                                (piece_pid_map[piece], (tempr, tempc)))
 
                 tempr -= 1
 
-            tempr = piece.row
-            tempc = piece.column
+            tempr = each[1][0]
+            tempc = each[1][1]
 
             # finding valid moves in downwards direction
             tempr += 1
@@ -1115,19 +1149,23 @@ class AI_manager:
                     break
                 else:
                     # # if selected piece is king, only one move per direction is allowed
-                    if piece.ptype == "k":
-                        if tempr < piece.row - 1 or tempr > piece.row + 1:
+                    if piece == "k":
+                        if tempr < each[1][0] - 1 or tempr > each[1][0] + 1:
                             break
-                        valid_moves.append((piece, (tempr, tempc)))
+                        # valid_moves.append((piece, (tempr, tempc)))
+                        valid_moves.append(
+                            (piece_pid_map[piece], (tempr, tempc)))
                     else:
                         # "." means empty cell
                         if thispos == ".":
-                            valid_moves.append((piece, (tempr, tempc)))
+                            # valid_moves.append((piece, (tempr, tempc)))
+                            valid_moves.append(
+                                (piece_pid_map[piece], (tempr, tempc)))
 
                 tempr += 1
 
-            tempr = piece.row
-            tempc = piece.column
+            tempr = each[1][0]
+            tempc = each[1][1]
 
             # finding valid moves in left direction
             tempc -= 1
@@ -1140,19 +1178,23 @@ class AI_manager:
                     break
                 else:
                     # # if selected piece is king, only one move per direction is allowed
-                    if piece.ptype == "k":
-                        if tempc < piece.column - 1 or tempc > piece.column + 1:
+                    if piece == "k":
+                        if tempc < each[1][1] - 1 or tempc > each[1][1] + 1:
                             break
-                        valid_moves.append((piece, (tempr, tempc)))
+                        # valid_moves.append((piece, (tempr, tempc)))
+                        valid_moves.append(
+                            (piece_pid_map[piece], (tempr, tempc)))
                     else:
                         # "." means empty cell
                         if thispos == ".":
-                            valid_moves.append((piece, (tempr, tempc)))
+                            # valid_moves.append((piece, (tempr, tempc)))
+                            valid_moves.append(
+                                (piece_pid_map[piece], (tempr, tempc)))
 
                 tempc -= 1
 
-            tempr = piece.row
-            tempc = piece.column
+            tempr = each[1][0]
+            tempc = each[1][1]
 
             # finding valid moves in right direction
             tempc += 1
@@ -1165,14 +1207,18 @@ class AI_manager:
                     break
                 else:
                     # # if selected piece is king, only one move per direction is allowed
-                    if piece.ptype == "k":
-                        if tempc < piece.column - 1 or tempc > piece.column + 1:
+                    if piece == "k":
+                        if tempc < each[1][1] - 1 or tempc > each[1][1] + 1:
                             break
-                        valid_moves.append((piece, (tempr, tempc)))
+                        # valid_moves.append((piece, (tempr, tempc)))
+                        valid_moves.append(
+                            (piece_pid_map[piece], (tempr, tempc)))
                     else:
                         # "." means empty cell
                         if thispos == ".":
-                            valid_moves.append((piece, (tempr, tempc)))
+                            # valid_moves.append((piece, (tempr, tempc)))
+                            valid_moves.append(
+                                (piece_pid_map[piece], (tempr, tempc)))
 
                 tempc += 1
 
@@ -1184,8 +1230,7 @@ class AI_manager:
     def king_sorrounded():
         pass
 
-    def evaluate(board):
-        return 50
+    def evaluate(self,turn):
         #     weight_king_pos=[[200 ,1   ,20  ,20  ,20  ,20  ,20  ,1   ,200 ],
         # 	[1   ,1   ,8   ,8   ,8   ,8   ,8   ,1   ,1   ],
         # 	[20  ,8   ,4   ,4   ,4   ,4   ,4   ,8   ,20  ],
@@ -1225,9 +1270,10 @@ class AI_manager:
         #         score+=defender
         #         score-=attacker
         #         score-=weight_king_pos[r][c]
+        return 50
 
     def fake_move(self, fake_board, commited_move):
-        # fake board=current state fake board, commited move=the move will be executed
+        # fake board=current state fake board, commited move=the move to be executed
         for row_index, row in enumerate(fake_board):
             f = True
             for column_index, col in enumerate(row):
@@ -1242,48 +1288,21 @@ class AI_manager:
         fake_board[commited_move[1][0]][commited_move[1]
                                         [0]] = commited_move[0].pid
 
-        fake_board_with_border = []
-        for row_ind, row in enumerate(fake_board):
-            one_row = []
-            for col_ind, column in enumerate(row):
-                if row_ind == 0:
-                    one_row.append("=")
-                else:
-                    if col_ind == 0:
-                        one_row.append("=")
-                    else:
-                        one_row.append(column)
-            one_row.append("=")
-            fake_board_with_border.append(one_row)
+        fake_board,king_captured=self.fake_capture_check(fake_board, commited_move)
 
-        one_row = []
-        for column in range(len(fake_board[0])+2):
-            one_row.append("=")
-        fake_board_with_border.append(one_row)  #change
-        
-        if(self.cnt==0):
-            for i in range(len(fake_board_with_border)):
-                print(fake_board_with_border[i])
-            self.cnt+=1
-      
-        
-        return fake_board_with_border  #change korte hobe ,must return a fake_board without border
+        return fake_board
 
     def minimax(self, fake_board, alpha, beta, max_depth, turn):
+
         bestvalue = -10000000
-        moves = self.find_all_possible_valid_moves(fake_board,True)  # True attacker ,False Defender
-        
-        if(max_depth == 0):  # or boardstate.gameOver()
-          return 50
-        '''
-            x=self.evaluate(fake_board)
-            print(x)
-            return(x)
-        '''
-           
-        
+        moves = self.find_all_possible_valid_moves(
+            fake_board, True)  # True attacker ,False Defender
+        if max_depth == 0 or self.fake_gameOver(fake_board)==1 or self.fake_gameOver(fake_board)==2 :
+            return self.evaluate(fake_board)
+
         # list of all pieces corresponding at this state fake board
         '''fake board is copied into current board'''
+
         current_board = []
         for row in range(len(fake_board)):
             one_row = []
@@ -1298,34 +1317,39 @@ class AI_manager:
         if(turn == True):  # attacker  maximizer
             bestvalue = -10000000
             for i in moves:
-                tmp_fake_board = self.fake_move(current_board, i)  #board with fake move is returned
-                value = self.minimax(tmp_fake_board, alpha, beta, max_depth-1, False) #go to next level ,now value for minimizer is calculated,so turn =False
+                tmp_fake_board = self.fake_move(current_board, i)
+                value = self.minimax(tmp_fake_board, alpha,
+                                     beta, max_depth-1, False)
                 bestvalue = max(value, bestvalue)
                 alpha = max(alpha, value)
-                if(beta <= alpha):  #alpha beta pruning
+                if(beta <= alpha):
                     break
 
         else:  # defender minimizer
             bestvalue = 10000000
             for i in moves:
-                tmp_fake_board = self.fake_move(current_board, i)  #board with fake move is returned
-                value = self.minimax(tmp_fake_board, alpha,beta, max_depth-1, True) #go to next level ,now value for minimizer is calculated,so turn =True
+                tmp_fake_board = self.fake_move(current_board, i)
+                value = self.minimax(tmp_fake_board, alpha,
+                                     beta, max_depth-1, True)
                 bestvalue = min(value, bestvalue)
                 beta = min(beta, value)
-                if(beta <= alpha):  #alpha beta pruning
+                if(beta <= alpha):
                     break
-                
+
         return bestvalue
 
     def strategy(self, current_board, moves):
+
         bestvalue = -1000000  # value to calcaute the move with best minimax value
-        max_depth = 3  #min max tree depth
+        max_depth = 3
         # True attacker ,False Defender  #moves =(piece_object,(row,col))
-        moves = self.find_all_possible_valid_moves(current_board,True)
+        moves = self.find_all_possible_valid_moves(current_board, True)
 
         for i in moves:   # iterate all possible valid moves and their corersponding min max value
-            fake_board = self.fake_move(current_board, i)  #getting a bord with move i
-            value = self.minimax(fake_board, -10000000,10000000, max_depth-1, True) #evaluate value for current board state after fake move
+            fake_board = self.fake_move(current_board, i)
+            # print(fake_board)
+            value = self.minimax(fake_board, -10000000,
+                                 10000000, max_depth-1, True)
             if(value > bestvalue):
                 bestmove = i
                 bestvalue = value
@@ -1333,10 +1357,20 @@ class AI_manager:
         return bestmove
 
     def find_best_move(self, current_board, moves):
+
         best_move = self.strategy(current_board, moves)
 
         return best_move
 
+
+    def fake_gameOver(self,fake_board):
+        #1 attacker win,2 defender win,3 none win
+        if self.fake_king_capture_check(fake_board):
+            return 1
+        elif self.fake_king_escape(fake_board) or self.fake_attacker_cnt(fake_board):
+            return 2
+        else:
+            return 3
     def fake_capture_check(self, fake_board_with_border, move):
         '''
         This method contains capture related logics.
@@ -1359,7 +1393,7 @@ class AI_manager:
         # iterating over each neighbour cells and finding out if the piece of this cell is captured or not
         for pos, item in enumerate(sorroundings):
 
-            captured = False
+            king_captured = False
             # currently selected cell's piece, if any
             opp = fake_board_with_border[item[0]][item[1]][0]
             oppid = fake_board_with_border[item[0]][item[1]]
@@ -1368,11 +1402,8 @@ class AI_manager:
             try:
                 opp2 = fake_board_with_border[two_hop_away[pos]
                                               [0]][two_hop_away[pos][1]][0]
-                opp2id = fake_board_with_border[two_hop_away[pos]
-                                                [0]][two_hop_away[pos][1]]
             except:
                 opp2 = "."
-                opp2 = None
 
             # if next cell is empty or has same type of piece or has border, no capturing is possible
             # if two hop cell is empty, then also no capturing is possible
@@ -1381,31 +1412,44 @@ class AI_manager:
 
             elif opp == "k":
                 # king needs 4 enemies on 4 cardinal points to be captured. so, handled in another function.
-                # self.king_capture_check(item[0], item[1])
+                king_captured=self.fake_king_capture_check(fake_board_with_border)
                 # print(self.king_captured)
-                pass
+            
 
             elif ptype != opp:
                 # neghbour cell's piece is of different type
                 if ptype == "a" and (ptype == opp2 or opp2 == "x"):
                     # a-d-a or a-d-res_cell situation
+                    fake_board_with_border[item[0]][item[1]]='.'
+                    '''
                     for piece in All_pieces:
                         if piece.pid == oppid:
                             captured = True
                             captured_pieces.append(piece)
                             break
+                    '''
 
                 elif ptype != "a" and opp2 != "a" and opp2 != "=" and opp == "a":
                     # d-a-d or k-a-d or d-a-k or d-a-res_cell or k-a-res_cell situation
+                    fake_board_with_border[item[0]][item[1]]='.'
+                    '''
                     for piece in All_pieces:
                         if piece.pid == oppid:
                             captured = True
                             captured_pieces.append(piece)
                             break
-        if self.king_captured:
-            self.finish = True
+                    '''
+     
+        return fake_board_with_border,king_captured
+        
+        # need to return captured pieces to caller function
+        # then must remove them from updated fake board status
+        # could be done here too
+        # needs to check king capture event
+        # should I flag it or not??
+        # is captured flag useless??
 
-    def fake_king_capture_check(self, fake_board_with_border, kingr, kingc):
+    def fake_king_capture_check(self, fake_board_with_border):
         '''
         This method contains caturing-king related logics.
 
@@ -1422,6 +1466,12 @@ class AI_manager:
 
         '''
         # store all four neighbor cells' pieces
+        for row_index,row in enumerate(fake_board_with_border):
+            for col_index,col in enumerate(row):
+                if col=='k' :
+                   kingr=row_index
+                   kingc=col_index
+                
         front = fake_board_with_border[kingr][kingc+1][0]
         back = fake_board_with_border[kingr][kingc-1][0]
         up = fake_board_with_border[kingr-1][kingc][0]
@@ -1439,9 +1489,16 @@ class AI_manager:
             return
 
         else:
-            self.king_captured = True
+            return True
 
-
+    def fake_king_escape(self,fake_board):
+        r=self.manager.board.rows
+        c=self.manager.board.columns
+        if fake_board[1][1]=='k' or fake_board[1][c]=='k' or fake_board[r][1]=='k' or fake_board[r][c]=='k':
+            return True
+        
+    def fake_attacker_cnt(self,fake_board):
+        pass
 def game_window(screen, mode):
     '''
     This handles game.
@@ -1469,25 +1526,30 @@ def game_window(screen, mode):
         bot = AI_manager(manager, screen)
 
     tafle = True
+    game_started = False
     while tafle:
         write_text("Play Vikings Chess", screen, (20, 20), (255, 255, 255),
                    pg.font.SysFont("Arial", 40))
         backbtn = Custom_button(750, 20, "Back", screen,
                                 pg.font.SysFont("Arial", 30))
-        restartbtn = Custom_button(
+        newgamebtn = Custom_button(
             525, 20, "New Game", screen, pg.font.SysFont("Arial", 30))
+
 
         if backbtn.draw_button():
             pg.mixer.Sound.play(pg.mixer.Sound(click_snd))
             main()
 
-        if restartbtn.draw_button():
+        if newgamebtn.draw_button():
+            game_started = True
             match_specific_global_data()
             chessboard = ChessBoard(screen)
             chessboard.draw_empty_board()
             chessboard.initiate_board_pieces()
             manager = Game_manager(screen, chessboard)
-
+            if mode == 1:
+                bot = AI_manager(manager, screen)
+        
         chessboard.draw_empty_board()
 
         for event in pg.event.get():
@@ -1505,8 +1567,8 @@ def game_window(screen, mode):
                         if manager.turn == False:
                             manager.mouse_click_analyzer(msx, msy)
 
-        if mode == 1 and manager.turn:
-            time.sleep(1)
+        if game_started and mode == 1 and manager.turn:
+            # time.sleep(1)
             bot.move()
         for piece in All_pieces:
             piece.draw_piece(screen)
@@ -1519,6 +1581,8 @@ def game_window(screen, mode):
         else:
             manager.turn_msg()
         pg.display.update()
+        # if manager.turn:
+        #     time.sleep(1)
 
 
 def rules(screen):
