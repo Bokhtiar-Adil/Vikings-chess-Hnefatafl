@@ -1225,7 +1225,7 @@ class AI_manager:
 
                 tempc += 1
 
-        print("valid\n", valid_moves)
+        # print("valid\n", valid_moves)
         return valid_moves
 
     def king_mobility():
@@ -1523,7 +1523,14 @@ class AI_manager:
             return True
         
     def fake_attacker_cnt(self,fake_board):
-        pass
+        
+        for row_index, row in enumerate(fake_board):
+            for col_ind, col in enumerate(row):
+                if col[0] == "a":
+                    return False
+        return True
+            
+
 def game_window(screen, mode):
     '''
     This handles game.
