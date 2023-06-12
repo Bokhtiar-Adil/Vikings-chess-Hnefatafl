@@ -546,7 +546,7 @@ class Game_manager:
             # stores current row and column
             thispos = self.current_board_status[tempr][tempc]
             # if finds any piece, no move left in this direction anymore
-            if thispos == "a" or thispos == "d" or thispos == "k":
+            if thispos == "a" or thispos == "d" or thispos == "k" or (thispos == "x" and self.already_selected.ptype != "k"):
                 break
             else:
                 # if selected piece is king, only one move per direction is allowed
@@ -571,7 +571,7 @@ class Game_manager:
             # stores current row and column
             thispos = self.current_board_status[tempr][tempc]
             # if finds any piece, no move left in this direction anymore
-            if thispos == "a" or thispos == "d" or thispos == "k":
+            if thispos == "a" or thispos == "d" or thispos == "k" or (thispos == "x" and self.already_selected.ptype != "k"):
                 break
             else:
                 # if selected piece is king, only one move per direction is allowed
@@ -596,7 +596,7 @@ class Game_manager:
             # stores current row and column
             thispos = self.current_board_status[tempr][tempc]
             # if finds any piece, no move left in this direction anymore
-            if thispos == "a" or thispos == "d" or thispos == "k":
+            if thispos == "a" or thispos == "d" or thispos == "k" or (thispos == "x" and self.already_selected.ptype != "k"):
                 break
             else:
                 # if selected piece is king, only one move per direction is allowed
@@ -621,7 +621,7 @@ class Game_manager:
             # stores current row and column
             thispos = self.current_board_status[tempr][tempc]
             # if finds any piece, no move left in this direction anymore
-            if thispos == "a" or thispos == "d" or thispos == "k":
+            if thispos == "a" or thispos == "d" or thispos == "k" or (thispos == "x" and self.already_selected.ptype != "k"):
                 break
             else:
                 # if selected piece is king, only one move per direction is allowed
@@ -691,7 +691,7 @@ class Game_manager:
             border.append("=")
         self.current_board_status_with_border.append(border)
 
-        # first setting all cells as empty cells, then making change where necessary
+        # first setting all cells as empty cells, then making changes where necessary
         for row in range(self.board.rows):
             bordered_row = ["="]  # left border
             one_row = []
@@ -877,18 +877,22 @@ class Game_manager:
         None.
 
         '''
-
+        consolas = pg.font.SysFont("consolas", 22)
         if self.king_captured:
-            write_text("KING CAPTURED !! ATTACKERS WIN !!", self.screen, (300, BOARD_TOP + self.board.rows*CELL_HEIGHT + 50), pink_fuchsia,
-                       pg.font.SysFont("Arial", 40), False)
-
+            if self.mode == 0:
+                write_text("KING CAPTURED !! ATTACKERS WIN !!", self.screen, (20, BOARD_TOP - 80), white,
+                       consolas, False)
+            else:
+                write_text("KING CAPTURED !! AI WINS !!", self.screen, (20, BOARD_TOP - 80), white,
+                       consolas, False)
+        
         elif self.king_escaped:
-            write_text("KING ESCAPED !! DEFENDERS WIN !!", self.screen, (300, BOARD_TOP + self.board.rows*CELL_HEIGHT + 50), green_neon,
-                       pg.font.SysFont("Arial", 40), False)
+            write_text("KING ESCAPED !! DEFENDERS WIN !!", self.screen, (20, BOARD_TOP - 80), white,
+                       consolas, False)
 
         elif self.all_attackers_dead:
-            write_text("ALL ATTACKERS DEAD !! DEFENDERS WIN !!", self.screen, (300, BOARD_TOP + self.board.rows*CELL_HEIGHT + 50), green_neon,
-                       pg.font.SysFont("Arial", 40), False)
+            write_text("ALL ATTACKERS DEAD !! DEFENDERS WIN !!", self.screen, (20, BOARD_TOP - 80), white,
+                       consolas, False)
 
         else:
             pass
@@ -984,6 +988,7 @@ class Game_manager:
 
         # updating piece's position
         self.already_selected = piece
+        # pg.draw.circle(self.screen, blue_zaffre, self.already_selected.center, 5)
         self.already_selected.update_piece_position(row-1, column-1)
         # updating board status
         self.update_board_status()
@@ -1098,7 +1103,7 @@ class AI_manager:
             current_board[piece.row+1][piece.column+1] = piece.pid
 
         current_board[1][1] = current_board[1][rows] = current_board[rows][1] = current_board[rows][columns] = 'x'
-
+        
         # #print(current_board)
 
         # find all possible valid move and return -> list[piece, (pair of indices)]
@@ -1152,7 +1157,7 @@ class AI_manager:
                 # stores current row and column
                 thispos = board_status_at_this_state[tempr][tempc][0]
                 # if finds any piece, no move left in this direction anymore
-                if thispos == "a" or thispos == "d" or thispos == "k" or thispos == "=":
+                if thispos == "a" or thispos == "d" or thispos == "k" or thispos == "=" or (thispos == "x" and piece != "k"):
                     break
                 else:
                     # this part is commented out because so far ai is only attacker and this part checks both 'a' or 'd'
@@ -1191,7 +1196,7 @@ class AI_manager:
                 # stores current row and column
                 thispos = board_status_at_this_state[tempr][tempc][0]
                 # if finds any piece, no move left in this direction anymore
-                if thispos == "a" or thispos == "d" or thispos == "k" or thispos == "=":
+                if thispos == "a" or thispos == "d" or thispos == "k" or thispos == "=" or (thispos == "x" and piece != "k"):
                     break
                 else:
                     # # if selected piece is king, only one move per direction is allowed
@@ -1229,7 +1234,7 @@ class AI_manager:
                 # stores current row and column
                 thispos = board_status_at_this_state[tempr][tempc][0]
                 # if finds any piece, no move left in this direction anymore
-                if thispos == "a" or thispos == "d" or thispos == "k" or thispos == "=":
+                if thispos == "a" or thispos == "d" or thispos == "k" or thispos == "=" or (thispos == "x" and piece != "k"):
                     break
                 else:
                     # # if selected piece is king, only one move per direction is allowed
@@ -1267,7 +1272,7 @@ class AI_manager:
                 # stores current row and column
                 thispos = board_status_at_this_state[tempr][tempc][0]
                 # if finds any piece, no move left in this direction anymore
-                if thispos == "a" or thispos == "d" or thispos == "k" or thispos == "=":
+                if thispos == "a" or thispos == "d" or thispos == "k" or thispos == "=" or (thispos == "x" and piece != "k"):
                     break
                 else:
                     # # if selected piece is king, only one move per direction is allowed
@@ -1354,25 +1359,21 @@ class AI_manager:
         # return 50
 
         weight_pos = 10
-        weight_king_pos = [[1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000],
-                           [1000, 500, 500, 500, 500, 500,
-                               500, 500, 500, 500, 1000],
-                           [1000, 500, 200, 200, 200, 200,
-                               200, 200, 200, 500, 1000],
+        weight_king_pos = [[10000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 10000],
+                           [1000, 500, 500, 500, 500, 500, 500, 500, 500, 500, 1000],
+                           [1000, 500, 200, 200, 200, 200, 200, 200, 200, 500, 1000],
                            [1000, 500, 200, 50, 50, 50, 50, 50, 200, 500, 1000],
                            [1000, 500, 200, 50, 10, 10, 10, 50, 200, 500, 1000],
                            [1000, 500, 200, 50, 10, 0, 10, 50, 200, 500, 1000],
                            [1000, 500, 200, 50, 10, 10, 10, 50, 200, 500, 1000],
                            [1000, 500, 200, 50, 50, 50, 50, 50, 200, 500, 1000],
-                           [1000, 500, 200, 200, 200, 200,
-                               200, 200, 200, 500, 1000],
-                           [1000, 500, 500, 500, 500, 500,
-                               500, 500, 500, 500, 1000],
-                           [1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000]]
+                           [1000, 500, 200, 200, 200, 200, 200, 200, 200, 500, 1000],
+                           [1000, 500, 500, 500, 500, 500, 500, 500, 500, 500, 1000],
+                           [10000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 10000]]
 
-        weight_king_mobility = 50
+        weight_king_mobility = 5
 
-        weight_king_sorrounded = 500
+        weight_king_sorrounded = 50000
 
         weight_attacker = 8  # weight is given because inequal number of attacker and defender
 
@@ -1406,14 +1407,16 @@ class AI_manager:
 
         score += (attacker*weight_attacker)
         score -= (defender*weight_defender)
-        score -= (weight_pos*weight_king_pos[r][c])
+        # score -= (weight_pos*weight_king_pos[r][c])
+        score-=(weight_pos*weight_king_pos[r-1][c-1])
         score -= (weight_king_mobility*self.king_mobility(fake_board, r, c))
 
         score += (weight_king_sorrounded *
                   self.king_sorrounded(fake_board, r, c))
 
-        return score
-
+        return score    
+    
+    
     def fake_move(self, fake_board, commited_move, row, column):
         # we could send kingr and kingc in arguments from caller function using piece_pos_this_state
         # fake board=current state fake board, commited move=the move to be executed
@@ -1430,7 +1433,11 @@ class AI_manager:
         #     if not f:
         #         break
         # optimized
-        fake_board[row][column] = "."
+        # if king moves from center position, it needs to be marked as a restricted cell
+        if row == 6 and column == 6:
+            fake_board[row][column] = "x"
+        else:
+            fake_board[row][column] = "."
         # changed2
         fake_board[commited_move[1][0]][commited_move[1]
                                         [1]] = commited_move[0].pid
@@ -1440,24 +1447,43 @@ class AI_manager:
 
         return fake_board
 
+    
+    def reverse_fake_move(self, fake_board, commited_move, row, column):
+        # due to annoying python behavior of pass by reference, every time fake_move is called
+        # caller function's local variable current_board gets modified
+        # so this function reverses that effect        
+        fake_board[row][column] = commited_move[0].pid        
+        if commited_move[1][0] == 6 and commited_move[1][1] == 6:
+            fake_board[commited_move[1][0]][commited_move[1][1]] = "x"
+        else:
+            fake_board[commited_move[1][0]][commited_move[1][1]] = "."
+            
+        return fake_board
+    
+    
     def minimax(self, fake_board, alpha, beta, max_depth, turn):
 
         #print("minimax\n", fake_board)
         bestvalue = -10000000
-        moves, piece_pos_this_state = self.find_all_possible_valid_moves(
-            fake_board, True)  # True attacker ,False Defender
+        
         # if max_depth <= 0 or self.fake_gameOver(fake_board) == 1 or self.fake_gameOver(fake_board) == 2:
         #    return self.evaluate(fake_board)
 
-        if max_depth <= 0:
+        # if max_depth <= 0:
+        #     return self.evaluate(fake_board)
+
+        # elif self.fake_gameOver(fake_board) == 1:
+        #     return 100000
+
+        # elif self.fake_gameOver(fake_board) == 2:
+        #     return -100000
+        
+        if max_depth <= 0 or self.fake_gameOver(fake_board) == 1 or self.fake_gameOver(fake_board) == 2:
             return self.evaluate(fake_board)
 
-        elif self.fake_gameOver(fake_board) == 1:
-            return 100000
-
-        elif self.fake_gameOver(fake_board) == 2:
-            return -100000
-
+        
+        moves, piece_pos_this_state = self.find_all_possible_valid_moves(
+            fake_board, True)  # True attacker ,False Defender
         # list of all pieces corresponding at this state fake board
         '''fake board is copied into current board'''
 
@@ -1477,7 +1503,7 @@ class AI_manager:
         for row_index, row in enumerate(fake_board):
             one_row = []
             for col_index, column in enumerate(row):
-                one_row.append(column)
+                one_row.append(fake_board[row_index][col_index])
             current_board.append(one_row)
 
         #print("after magic\n", current_board)
@@ -1491,11 +1517,13 @@ class AI_manager:
                 tmp_fake_board = self.fake_move(current_board, i,
                                                 piece_pos_this_state[i[0].pid][0], piece_pos_this_state[i[0].pid][1])
 
-                #print("tmp_fake_board_below 2\n", tmp_fake_board)
+                # print("tmp_fake_board_below 2\n", tmp_fake_board)
                 value = self.minimax(tmp_fake_board, alpha,
                                      beta, max_depth-1, False)
+                tmp_fake_board = self.reverse_fake_move(current_board, i,
+                                            piece_pos_this_state[i[0].pid][0], piece_pos_this_state[i[0].pid][1])
                 bestvalue = max(value, bestvalue)
-                alpha = max(alpha, value)
+                alpha = max(alpha, bestvalue)
                 if(beta <= alpha):
                     break
 
@@ -1507,8 +1535,10 @@ class AI_manager:
                                                 piece_pos_this_state[i[0].pid][0], piece_pos_this_state[i[0].pid][1])
                 value = self.minimax(tmp_fake_board, alpha,
                                      beta, max_depth-1, True)
+                tmp_fake_board = self.reverse_fake_move(current_board, i,
+                                            piece_pos_this_state[i[0].pid][0], piece_pos_this_state[i[0].pid][1])
                 bestvalue = min(value, bestvalue)
-                beta = min(beta, value)
+                beta = min(beta, bestvalue)
                 if(beta <= alpha):
                     break
 
@@ -1517,21 +1547,29 @@ class AI_manager:
     def strategy(self, current_board, moves):
 
         bestvalue = -1000000  # value to calcaute the move with best minimax value
-        max_depth = 3
+        max_depth = 2
         # True attacker ,False Defender  #moves =(piece_object,(row,col))
         moves, piece_pos_this_state = self.find_all_possible_valid_moves(
             current_board, True)
+        
         c = 0
         for i in moves:   # iterate all possible valid moves and their corersponding min max value
-            #print("strategy\n", current_board)
-            print("strategy 1466-ish ", c)
+            print("strategy\n", current_board)
+            # print("strategy 1466-ish ", c)
             c += 1
             # optimized
+            print("piece curr: ", i[0].pid, piece_pos_this_state[i[0].pid][0], piece_pos_this_state[i[0].pid][1])
+            
             fake_board = self.fake_move(current_board, i,
                                         piece_pos_this_state[i[0].pid][0], piece_pos_this_state[i[0].pid][1])
-            # #print(fake_board)
+            print(fake_board)
+            
             value = self.minimax(fake_board, -10000000,
                                  10000000, max_depth-1, True)
+            
+            fake_board = self.reverse_fake_move(current_board, i,
+                                        piece_pos_this_state[i[0].pid][0], piece_pos_this_state[i[0].pid][1])
+            
             if(value > bestvalue):
                 bestmove = i
                 bestvalue = value
@@ -1775,7 +1813,7 @@ def game_window(screen, mode):
                                 manager.turn_msg(game_started)
                             pg.display.update()
 
-        if game_started and mode == 1 and manager.turn:
+        if game_started and mode == 1 and manager.turn and not manager.finish:
             # time.sleep(1)
 
             chessboard.draw_empty_board()
