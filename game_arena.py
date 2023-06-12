@@ -1099,9 +1099,9 @@ class AI_manager:
         # #print(current_board)
 
         # find all possible valid move and return -> list[piece, (pair of indices)]
-        moves = self.find_all_possible_valid_moves(current_board, True)
+        #moves = self.find_all_possible_valid_moves(current_board, True)
         # select the best move. implement algorithm here
-        piece, best_move = self.find_best_move(current_board, moves)
+        piece, best_move = self.find_best_move(current_board)
         # #print(best_move)
         row, col = best_move  # change
 
@@ -1318,14 +1318,15 @@ class AI_manager:
      	 [1000   ,500   ,200   ,200   ,200   ,200   ,200   ,200   ,200 ,500 ,1000 ],
      	 [1000   ,500   ,500   ,500   ,500   ,500   ,500   ,500   ,500, 500 ,1000 ],
      	 [10000 ,1000  ,1000  ,1000  ,1000  ,1000  ,1000  ,1000 ,1000 ,1000 ,10000] ]
+         
 
-         weight_king_mobility=5
+         #weight_king_mobility=5
 
          weight_king_sorrounded=50000
          
-         weight_attacker=8  #weight is given because inequal number of attacker and defender 
+         weight_attacker=12  #weight is given because inequal number of attacker and defender 
          
-         weight_defender=16
+         weight_defender=24
          
          attacker=0  #attacker count
          
@@ -1341,8 +1342,10 @@ class AI_manager:
              score-=100000
              return score
          
-
+         self.sadman+=1
          for row_index,row in enumerate (fake_board):
+              if(self.sadman==100):
+                 print(row)
               for col_index,col in enumerate(row):
                   if(col=='k'):
                       r=row_index
@@ -1357,9 +1360,14 @@ class AI_manager:
          score-=(defender*weight_defender)
          #score-=(weight_pos*weight_king_pos[r][c])
          score-=(weight_pos*weight_king_pos[r-1][c-1])
-         score-=(weight_king_mobility*self.king_mobility(fake_board,r,c))
+         #score-=(weight_king_mobility*self.king_mobility(fake_board,r,c))
          
          score+=(weight_king_sorrounded*self.king_sorrounded(fake_board,r,c))
+         
+         #print("yoyo")
+        
+         if(self.sadman==100):             
+           print(score)
 
          
          return score
@@ -1373,6 +1381,8 @@ class AI_manager:
     def fake_move(self, fake_board, commited_move):
         # fake board=current state fake board, commited move=the move to be executed
         # (piece, (where to))
+        if fake_board[commited_move[1][0]][commited_move[1][1]] != '.':
+            return fake_board
         for row_index, row in enumerate(fake_board):
             f = True
             for column_index, col in enumerate(row):
@@ -1398,11 +1408,12 @@ class AI_manager:
         #print("minimax\n", fake_board)
         bestvalue = -10000000
         moves = self.find_all_possible_valid_moves(
-            fake_board, True)  # True attacker ,False Defender
+            fake_board, turn)  # True attacker ,False Defender
         #if max_depth <= 0 or self.fake_gameOver(fake_board) == 1 or self.fake_gameOver(fake_board) == 2:
         #    return self.evaluate(fake_board)
         
         if max_depth <= 0 or self.fake_gameOver(fake_board) == 1 or self.fake_gameOver(fake_board) == 2:
+                
             return self.evaluate(fake_board)
         
 
@@ -1451,13 +1462,14 @@ class AI_manager:
 
         return bestvalue
 
-    def strategy(self, current_board, moves):
+    def strategy(self, current_board):
 
         bestvalue = -1000000  # value to calcaute the move with best minimax value
-        max_depth = 1
+        max_depth = 2
         # True attacker ,False Defender  #moves =(piece_object,(row,col))
         moves = self.find_all_possible_valid_moves(current_board, True)
         c=0
+        print("yoyo")
         for i in moves:   # iterate all possible valid moves and their corersponding min max value
             #print("strategy\n", current_board)
             c+=1
@@ -1465,15 +1477,16 @@ class AI_manager:
             # #print(fake_board)
             value = self.minimax(fake_board, -10000000,
                                  10000000, max_depth-1, False)
+            print(value)
             if(value > bestvalue):
                 bestmove = i
                 bestvalue = value
 
         return bestmove
 
-    def find_best_move(self, current_board, moves):
+    def find_best_move(self, current_board):
 
-        best_move = self.strategy(current_board, moves)
+        best_move = self.strategy(current_board)
 
         return best_move
 
@@ -1591,8 +1604,8 @@ class AI_manager:
                     kingr = row_index
                     kingc = col_index
                     break
-
-        #print(kingr, kingc)
+        print(fake_board_with_border)
+        print(kingr, kingc)
         front = fake_board_with_border[kingr][kingc+1][0]
         back = fake_board_with_border[kingr][kingc-1][0]
         up = fake_board_with_border[kingr-1][kingc][0]
