@@ -1306,8 +1306,8 @@ class AI_manager:
     def evaluate(self, fake_board):
          #return 50
     
-         weight_pos=10
-         weight_king_pos=[[1000 ,1000 ,1000 ,1000 ,1000 ,1000 ,1000 ,1000 ,1000 ,1000 ,1000],
+         weight_pos=5
+         weight_king_pos=[[10000 ,1000 ,1000 ,1000 ,1000 ,1000 ,1000 ,1000 ,1000 ,1000 ,10000],
      	 [1000   ,500   ,500   ,500   ,500   ,500   ,500   ,500   ,500, 500 ,1000 ],
      	 [1000   ,500   ,200   ,200   ,200   ,200   ,200   ,200   ,200 ,500 ,1000 ],
      	 [1000   ,500   ,200   ,50   ,50   ,50   ,50   ,50   ,200 ,500 ,1000 ],
@@ -1317,11 +1317,11 @@ class AI_manager:
      	 [1000   ,500   ,200   ,50   ,50   ,50   ,50   ,50   ,200 ,500 ,1000 ],
      	 [1000   ,500   ,200   ,200   ,200   ,200   ,200   ,200   ,200 ,500 ,1000 ],
      	 [1000   ,500   ,500   ,500   ,500   ,500   ,500   ,500   ,500, 500 ,1000 ],
-     	 [1000 ,1000  ,1000  ,1000  ,1000  ,1000  ,1000  ,1000 ,1000 ,1000 ,1000] ]
+     	 [10000 ,1000  ,1000  ,1000  ,1000  ,1000  ,1000  ,1000 ,1000 ,1000 ,10000] ]
 
-         weight_king_mobility=50
+         weight_king_mobility=5
 
-         weight_king_sorrounded=500
+         weight_king_sorrounded=50000
          
          weight_attacker=8  #weight is given because inequal number of attacker and defender 
          
@@ -1332,7 +1332,7 @@ class AI_manager:
          defender=0 #defender count 
 
          score=0
-         '''
+         
          if self.fake_gameOver(fake_board)==1:  #if 1 then winner is attacker
              score+=100000
              return score
@@ -1341,7 +1341,6 @@ class AI_manager:
              score-=100000
              return score
          
-         '''
 
          for row_index,row in enumerate (fake_board):
               for col_index,col in enumerate(row):
@@ -1356,12 +1355,15 @@ class AI_manager:
          
          score+=(attacker*weight_attacker)
          score-=(defender*weight_defender)
-         score-=(weight_pos*weight_king_pos[r][c])
+         #score-=(weight_pos*weight_king_pos[r][c])
+         score-=(weight_pos*weight_king_pos[r-1][c-1])
          score-=(weight_king_mobility*self.king_mobility(fake_board,r,c))
          
          score+=(weight_king_sorrounded*self.king_sorrounded(fake_board,r,c))
+
          
          return score
+     
          
      
         
@@ -1400,14 +1402,9 @@ class AI_manager:
         #if max_depth <= 0 or self.fake_gameOver(fake_board) == 1 or self.fake_gameOver(fake_board) == 2:
         #    return self.evaluate(fake_board)
         
-        if max_depth <= 0:
+        if max_depth <= 0 or self.fake_gameOver(fake_board) == 1 or self.fake_gameOver(fake_board) == 2:
             return self.evaluate(fake_board)
         
-        elif self.fake_gameOver(fake_board) == 1 :
-            return 100000 
-        
-        elif self.fake_gameOver(fake_board) == 2:
-           return -100000 
 
         # list of all pieces corresponding at this state fake board
         '''fake board is copied into current board'''
@@ -1437,7 +1434,7 @@ class AI_manager:
                 value = self.minimax(tmp_fake_board, alpha,
                                      beta, max_depth-1, False)
                 bestvalue = max(value, bestvalue)
-                alpha = max(alpha, value)
+                alpha = max(alpha, bestvalue)
                 if(beta <= alpha):
                     break
 
@@ -1448,7 +1445,7 @@ class AI_manager:
                 value = self.minimax(tmp_fake_board, alpha,
                                      beta, max_depth-1, True)
                 bestvalue = min(value, bestvalue)
-                beta = min(beta, value)
+                beta = min(beta, bestvalue)
                 if(beta <= alpha):
                     break
 
@@ -1457,18 +1454,17 @@ class AI_manager:
     def strategy(self, current_board, moves):
 
         bestvalue = -1000000  # value to calcaute the move with best minimax value
-        max_depth = 3
+        max_depth = 1
         # True attacker ,False Defender  #moves =(piece_object,(row,col))
         moves = self.find_all_possible_valid_moves(current_board, True)
         c=0
         for i in moves:   # iterate all possible valid moves and their corersponding min max value
             #print("strategy\n", current_board)
-            print(c)
             c+=1
             fake_board = self.fake_move(current_board, i)
             # #print(fake_board)
             value = self.minimax(fake_board, -10000000,
-                                 10000000, max_depth-1, True)
+                                 10000000, max_depth-1, False)
             if(value > bestvalue):
                 bestmove = i
                 bestvalue = value
