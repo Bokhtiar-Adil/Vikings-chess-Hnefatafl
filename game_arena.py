@@ -289,7 +289,7 @@ class ChessPiece(pg.sprite.Sprite):
         pg.draw.circle(screen, self.color, self.center, PIECE_RADIUS)
 
     def update_piece_position(self, row, column):
-        
+
         self.row, self.column = (row, column)
         self.center = (BOARD_LEFT + int(CELL_WIDTH / 2) + self.column*CELL_WIDTH,
                        BOARD_TOP + int(CELL_HEIGHT / 2) + self.row*CELL_HEIGHT)
@@ -478,6 +478,7 @@ class Game_manager:
         self.current_board_status = []
         self.current_board_status_with_border = []
         self.mode = mode
+        self.last_move = None
 
         # initiating current_board_status and current_board_status_with_border.
         # initially board is in initial_pattern
@@ -546,7 +547,7 @@ class Game_manager:
             # stores current row and column
             thispos = self.current_board_status[tempr][tempc]
             # if finds any piece, no move left in this direction anymore
-            if thispos == "a" or thispos == "d" or thispos == "k":
+            if thispos == "a" or thispos == "d" or thispos == "k" or (thispos == "x" and self.already_selected.ptype != "k"):
                 break
             else:
                 # if selected piece is king, only one move per direction is allowed
@@ -571,7 +572,7 @@ class Game_manager:
             # stores current row and column
             thispos = self.current_board_status[tempr][tempc]
             # if finds any piece, no move left in this direction anymore
-            if thispos == "a" or thispos == "d" or thispos == "k":
+            if thispos == "a" or thispos == "d" or thispos == "k" or (thispos == "x" and self.already_selected.ptype != "k"):
                 break
             else:
                 # if selected piece is king, only one move per direction is allowed
@@ -596,7 +597,7 @@ class Game_manager:
             # stores current row and column
             thispos = self.current_board_status[tempr][tempc]
             # if finds any piece, no move left in this direction anymore
-            if thispos == "a" or thispos == "d" or thispos == "k":
+            if thispos == "a" or thispos == "d" or thispos == "k" or (thispos == "x" and self.already_selected.ptype != "k"):
                 break
             else:
                 # if selected piece is king, only one move per direction is allowed
@@ -621,7 +622,7 @@ class Game_manager:
             # stores current row and column
             thispos = self.current_board_status[tempr][tempc]
             # if finds any piece, no move left in this direction anymore
-            if thispos == "a" or thispos == "d" or thispos == "k":
+            if thispos == "a" or thispos == "d" or thispos == "k" or (thispos == "x" and self.already_selected.ptype != "k"):
                 break
             else:
                 # if selected piece is king, only one move per direction is allowed
@@ -691,7 +692,7 @@ class Game_manager:
             border.append("=")
         self.current_board_status_with_border.append(border)
 
-        # first setting all cells as empty cells, then making change where necessary
+        # first setting all cells as empty cells, then making changes where necessary
         for row in range(self.board.rows):
             bordered_row = ["="]  # left border
             one_row = []
@@ -877,18 +878,22 @@ class Game_manager:
         None.
 
         '''
-
+        consolas = pg.font.SysFont("consolas", 22)
         if self.king_captured:
-            write_text("KING CAPTURED !! ATTACKERS WIN !!", self.screen, (300, BOARD_TOP + self.board.rows*CELL_HEIGHT + 50), pink_fuchsia,
-                       pg.font.SysFont("Arial", 40), False)
+            if self.mode == 0:
+                write_text(">>> KING CAPTURED !! ATTACKERS WIN !!", self.screen, (20, BOARD_TOP - 80), white,
+                           consolas, False)
+            else:
+                write_text(">>> KING CAPTURED !! AI WINS !!", self.screen, (20, BOARD_TOP - 80), white,
+                           consolas, False)
 
         elif self.king_escaped:
-            write_text("KING ESCAPED !! DEFENDERS WIN !!", self.screen, (300, BOARD_TOP + self.board.rows*CELL_HEIGHT + 50), green_neon,
-                       pg.font.SysFont("Arial", 40), False)
+            write_text(">>> KING ESCAPED !! DEFENDERS WIN !!", self.screen, (20, BOARD_TOP - 80), white,
+                       consolas, False)
 
         elif self.all_attackers_dead:
-            write_text("ALL ATTACKERS DEAD !! DEFENDERS WIN !!", self.screen, (300, BOARD_TOP + self.board.rows*CELL_HEIGHT + 50), green_neon,
-                       pg.font.SysFont("Arial", 40), False)
+            write_text(">>> ALL ATTACKERS DEAD !! DEFENDERS WIN !!", self.screen, (20, BOARD_TOP - 80), white,
+                       consolas, False)
 
         else:
             pass
@@ -956,8 +961,13 @@ class Game_manager:
                     if (msx >= pos[0] - PIECE_RADIUS) and (msx < pos[0] + PIECE_RADIUS):
                         if (msy >= pos[1] - PIECE_RADIUS) and (msy < pos[1] + PIECE_RADIUS):
                             # updating piece's position
+                            prev = (self.already_selected.row,
+                                    self.already_selected.column)
                             self.already_selected.update_piece_position(
                                 self.valid_moves[ind][0], self.valid_moves[ind][1])
+                            curr = (self.already_selected.row,
+                                    self.already_selected.column)
+                            self.last_move = (prev, curr)
                             # updating board status
                             self.update_board_status()
                             # playing a sound effect
@@ -984,7 +994,11 @@ class Game_manager:
 
         # updating piece's position
         self.already_selected = piece
+        prev = (self.already_selected.row, self.already_selected.column)
+        # pg.draw.circle(self.screen, blue_zaffre, self.already_selected.center, 5)
         self.already_selected.update_piece_position(row-1, column-1)
+        curr = (row-1, column-1)
+        self.last_move = (prev, curr)
         # updating board status
         self.update_board_status()
         # playing a sound effect
@@ -1018,10 +1032,10 @@ class Game_manager:
         if not game_started:
             if self.mode == 0:
                 write_text(">>> Click 'New Game' to start a new game.", self.screen,
-                       (20, BOARD_TOP - 80), white, consolas, False)
+                           (20, BOARD_TOP - 80), white, consolas, False)
             else:
                 write_text(">>> Click 'New Game' to start a new game. AI is attacker and you are defender.", self.screen,
-                       (20, BOARD_TOP - 80), white, consolas, False)
+                           (20, BOARD_TOP - 80), white, consolas, False)
 
         elif self.mode == 0 and self.turn:
             write_text(">>> Attacker's Turn", self.screen, (20, BOARD_TOP - 80), white,
@@ -1042,6 +1056,7 @@ class AI_manager:
 
         self.manager = manager
         self.screen = screen
+        self.sadman = 0
 
     def move(self):
 
@@ -1062,14 +1077,20 @@ class AI_manager:
          ['.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.'], 
          ['.', '.', '.', '.', '.', 'a19', '.', '.', '.', '.', '.'], 
          ['x', '.', '.', 'a20', 'a21', 'a22', 'a23', 'a24', '.', '.', 'x']]
+        
+        
+        '''
+        '''
+        bug to resolve: actual game e king escape hoye gele r minmax dekhbe keno? ai to oi state theke r kono calculation ei jabe na.Game over hoye jabe
+        
         '''
 
         current_board = []
-
-        one_row = []
+        # optimized
+        border_row = []
         for column in range(columns+2):
-            one_row.append("=")
-        current_board.append(one_row)
+            border_row.append("=")
+        current_board.append(border_row)
 
         for row in range(rows):
             one_row = ["="]
@@ -1078,23 +1099,28 @@ class AI_manager:
             one_row.append("=")
             current_board.append(one_row)
 
-        one_row = []
-        for column in range(columns+2):
-            one_row.append("=")
-        current_board.append(one_row)
+        # one_row = []
+        # for column in range(columns+2):
+        #     one_row.append("=")
+        # current_board.append(one_row)
+
+        # optimized
+        current_board.append(border_row)
 
         # changed
         for piece in All_pieces:
             current_board[piece.row+1][piece.column+1] = piece.pid
 
         current_board[1][1] = current_board[1][rows] = current_board[rows][1] = current_board[rows][columns] = 'x'
+        if current_board[6][6] != "k":
+            current_board[6][6] = "x"
 
         # #print(current_board)
 
         # find all possible valid move and return -> list[piece, (pair of indices)]
-        moves = self.find_all_possible_valid_moves(current_board, True)
+        #moves, piece_pos_this_state = self.find_all_possible_valid_moves(current_board, True)
         # select the best move. implement algorithm here
-        piece, best_move = self.find_best_move(current_board, moves)
+        piece, best_move = self.find_best_move(current_board)
         # #print(best_move)
         row, col = best_move  # change
 
@@ -1106,21 +1132,32 @@ class AI_manager:
         valid_moves = []
         # needs a list of pair containing the fake pos of pieces at current fake state
         #print("board_status:\n", board_status_at_this_state)
-        piece_pos_this_state = []
+        # piece_pos_this_state = []
+        # for row_ind, row in enumerate(board_status_at_this_state):
+        #     for col_ind, column in enumerate(row):
+        #         if column != "." and column != "x" and column != "=":
+        #             piece_pos_this_state.append((column, (row_ind, col_ind)))
+
+        # optimized
+        piece_pos_this_state = {}
         for row_ind, row in enumerate(board_status_at_this_state):
             for col_ind, column in enumerate(row):
                 if column != "." and column != "x" and column != "=":
-                    piece_pos_this_state.append((column, (row_ind, col_ind)))
+                    piece_pos_this_state[column] = (row_ind, col_ind)
 
         #print("piece_pos_this_state:\n", piece_pos_this_state)
-
-        for each in piece_pos_this_state:
+        # optimized
+        for each in piece_pos_this_state.keys():
             piece = each[0]
+            # print("\n\n\n1136 ish ", each, piece, each[0])
             if (fake_turn and not piece[0] == "a") or (not fake_turn and piece[0] == "a"):
                 continue
             # #print("here 3")
-            tempr = each[1][0]
-            tempc = each[1][1]
+            # optimized
+            # tempr = each[1][0]
+            # tempc = each[1][1]
+            tempr = piece_pos_this_state[each][0]
+            tempc = piece_pos_this_state[each][1]
             # #print(tempr, tempc)
 
             # finding valid moves in upwards direction
@@ -1130,7 +1167,7 @@ class AI_manager:
                 # stores current row and column
                 thispos = board_status_at_this_state[tempr][tempc][0]
                 # if finds any piece, no move left in this direction anymore
-                if thispos == "a" or thispos == "d" or thispos == "k" or thispos == "=":
+                if thispos == "a" or thispos == "d" or thispos == "k" or thispos == "=" or (thispos == "x" and piece != "k"):
                     break
                 else:
                     # this part is commented out because so far ai is only attacker and this part checks both 'a' or 'd'
@@ -1139,19 +1176,28 @@ class AI_manager:
                         if tempr < each[1][0] - 1 or tempr > each[1][0] + 1:
                             break
                         # valid_moves.append((piece, (tempr, tempc)))
+                        # optimized
+                        # valid_moves.append(
+                        #     (piece_pid_map[piece], (tempr, tempc)))
                         valid_moves.append(
-                            (piece_pid_map[piece], (tempr, tempc)))
+                            (piece_pid_map[each], (tempr, tempc)))
                     else:
                         # "." means empty cell
                         if thispos == ".":
                             # valid_moves.append((piece, (tempr, tempc)))
+                            # optimized
+                            # valid_moves.append(
+                            #     (piece_pid_map[piece], (tempr, tempc)))
                             valid_moves.append(
-                                (piece_pid_map[piece], (tempr, tempc)))
+                                (piece_pid_map[each], (tempr, tempc)))
 
                 tempr -= 1
 
-            tempr = each[1][0]
-            tempc = each[1][1]
+            # optimized
+            # tempr = each[1][0]
+            # tempc = each[1][1]
+            tempr = piece_pos_this_state[each][0]
+            tempc = piece_pos_this_state[each][1]
 
             # finding valid moves in downwards direction
             tempr += 1
@@ -1160,7 +1206,7 @@ class AI_manager:
                 # stores current row and column
                 thispos = board_status_at_this_state[tempr][tempc][0]
                 # if finds any piece, no move left in this direction anymore
-                if thispos == "a" or thispos == "d" or thispos == "k" or thispos == "=":
+                if thispos == "a" or thispos == "d" or thispos == "k" or thispos == "=" or (thispos == "x" and piece != "k"):
                     break
                 else:
                     # # if selected piece is king, only one move per direction is allowed
@@ -1168,19 +1214,28 @@ class AI_manager:
                         if tempr < each[1][0] - 1 or tempr > each[1][0] + 1:
                             break
                         # valid_moves.append((piece, (tempr, tempc)))
+                        # optimized
+                        # valid_moves.append(
+                        #     (piece_pid_map[piece], (tempr, tempc)))
                         valid_moves.append(
-                            (piece_pid_map[piece], (tempr, tempc)))
+                            (piece_pid_map[each], (tempr, tempc)))
                     else:
                         # "." means empty cell
                         if thispos == ".":
                             # valid_moves.append((piece, (tempr, tempc)))
+                            # optimized
+                            # valid_moves.append(
+                            #     (piece_pid_map[piece], (tempr, tempc)))
                             valid_moves.append(
-                                (piece_pid_map[piece], (tempr, tempc)))
+                                (piece_pid_map[each], (tempr, tempc)))
 
                 tempr += 1
 
-            tempr = each[1][0]
-            tempc = each[1][1]
+            # optimized
+            # tempr = each[1][0]
+            # tempc = each[1][1]
+            tempr = piece_pos_this_state[each][0]
+            tempc = piece_pos_this_state[each][1]
 
             # finding valid moves in left direction
             tempc -= 1
@@ -1189,7 +1244,7 @@ class AI_manager:
                 # stores current row and column
                 thispos = board_status_at_this_state[tempr][tempc][0]
                 # if finds any piece, no move left in this direction anymore
-                if thispos == "a" or thispos == "d" or thispos == "k" or thispos == "=":
+                if thispos == "a" or thispos == "d" or thispos == "k" or thispos == "=" or (thispos == "x" and piece != "k"):
                     break
                 else:
                     # # if selected piece is king, only one move per direction is allowed
@@ -1197,19 +1252,28 @@ class AI_manager:
                         if tempc < each[1][1] - 1 or tempc > each[1][1] + 1:
                             break
                         # valid_moves.append((piece, (tempr, tempc)))
+                        # optimized
+                        # valid_moves.append(
+                        #     (piece_pid_map[piece], (tempr, tempc)))
                         valid_moves.append(
-                            (piece_pid_map[piece], (tempr, tempc)))
+                            (piece_pid_map[each], (tempr, tempc)))
                     else:
                         # "." means empty cell
                         if thispos == ".":
                             # valid_moves.append((piece, (tempr, tempc)))
+                            # optimized
+                            # valid_moves.append(
+                            #     (piece_pid_map[piece], (tempr, tempc)))
                             valid_moves.append(
-                                (piece_pid_map[piece], (tempr, tempc)))
+                                (piece_pid_map[each], (tempr, tempc)))
 
                 tempc -= 1
 
-            tempr = each[1][0]
-            tempc = each[1][1]
+            # optimized
+            # tempr = each[1][0]
+            # tempc = each[1][1]
+            tempr = piece_pos_this_state[each][0]
+            tempc = piece_pos_this_state[each][1]
 
             # finding valid moves in right direction
             tempc += 1
@@ -1218,7 +1282,7 @@ class AI_manager:
                 # stores current row and column
                 thispos = board_status_at_this_state[tempr][tempc][0]
                 # if finds any piece, no move left in this direction anymore
-                if thispos == "a" or thispos == "d" or thispos == "k" or thispos == "=":
+                if thispos == "a" or thispos == "d" or thispos == "k" or thispos == "=" or (thispos == "x" and piece != "k"):
                     break
                 else:
                     # # if selected piece is king, only one move per direction is allowed
@@ -1226,82 +1290,167 @@ class AI_manager:
                         if tempc < each[1][1] - 1 or tempc > each[1][1] + 1:
                             break
                         # valid_moves.append((piece, (tempr, tempc)))
+                        # optimized
+                        # valid_moves.append(
+                        #     (piece_pid_map[piece], (tempr, tempc)))
                         valid_moves.append(
-                            (piece_pid_map[piece], (tempr, tempc)))
+                            (piece_pid_map[each], (tempr, tempc)))
                     else:
                         # "." means empty cell
                         if thispos == ".":
                             # valid_moves.append((piece, (tempr, tempc)))
+                            # optimized
+                            # valid_moves.append(
+                            #     (piece_pid_map[piece], (tempr, tempc)))
                             valid_moves.append(
-                                (piece_pid_map[piece], (tempr, tempc)))
+                                (piece_pid_map[each], (tempr, tempc)))
 
                 tempc += 1
 
         # print("valid\n", valid_moves)
-        return valid_moves
+        return valid_moves, piece_pos_this_state
 
-    def king_mobility():
-        pass
+    def king_mobility(self, fake_board, r, c):
+        score = 0
+        i = c-1
+        while(i != '='):
+            if fake_board[r][i] == '.' or fake_board[r][i] == 'x':
+                score += 1
+            else:
+                break
+            i -= 1
 
-    def king_sorrounded():
-        pass
+        i = c+1
+        while(i != '='):
+            if fake_board[r][i] == '.' or fake_board[r][i] == 'x':
+                score += 1
+            else:
+                break
 
-    def evaluate(self, turn):
-        #     weight_king_pos=[[200 ,1   ,20  ,20  ,20  ,20  ,20  ,1   ,200 ],
-        # 	[1   ,1   ,8   ,8   ,8   ,8   ,8   ,1   ,1   ],
-        # 	[20  ,8   ,4   ,4   ,4   ,4   ,4   ,8   ,20  ],
-        # 	[20  ,8   ,4   ,2   ,2   ,2   ,4   ,8   ,20  ],
-        # 	[20  ,8   ,4   ,2   ,0   ,2   ,4   ,8   ,20  ],
-        # 	[20  ,8   ,4   ,2   ,2   ,2   ,4   ,8   ,20  ],
-        # 	[20  ,8   ,4   ,4   ,4   ,4   ,4   ,8   ,20  ],
-        # 	[1   ,1   ,8   ,8   ,8   ,8   ,8   ,1   ,1   ],
-        # 	[200 ,1   ,20  ,20  ,20  ,20  ,20  ,1   ,200 ] ]
+            i += 1
 
-        #     weight_king_mobility=5
+        i = r-1
+        while(i != '='):
+            if fake_board[i][c] == '.' or fake_board[i][c] == 'x':
+                score += 1
+            else:
+                break
 
-        #     weight_king_sorrounded=50
+            i -= 1
 
-        #     score=0
+        i = r+1
+        while(i != '='):
+            if fake_board[i][c] == '.' or fake_board[i][c] == 'x':
+                score += 1
+            else:
+                break
 
-        #     if boardstate.getwinner()==player:
-        #         score+=10000
-        #         return score
+            i += 1
 
-        #     elif boardstate.getwinner()==opponet:
-        #         score-=10000
-        #         return score
+        return score
 
-        #     for row_index,row in enumerate (fake_board):
-        #          for column_index,col in enumerate(row):
-        #              if(col=='k'):
-        #                  r=row,c=col
-        #                  break
+    def king_sorrounded(self, fake_board, r, c):
+        score = 0
+        if fake_board[r][c+1][0] == 'a':
+            score += 1
 
-        #     if turn==True:
-        #         score+=attacker
-        #         score-=defender
-        #         score+=weight_king_pos[r][c]
+        if fake_board[r][c-1][0] == 'a':
+            score += 1
 
-        #     else:
-        #         score+=defender
-        #         score-=attacker
-        #         score-=weight_king_pos[r][c]
-        return 50
+        if fake_board[r-1][c][0] == 'a':
+            score += 1
 
-    def fake_move(self, fake_board, commited_move):
+        if fake_board[r+1][c][0] == 'a':
+            score += 1
+
+        return score
+
+    def evaluate(self, fake_board):
+        # return 50
+
+        weight_pos = 10
+        weight_king_pos = [[10000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 10000],
+                           [1000, 500, 500, 500, 500, 500,
+                               500, 500, 500, 500, 1000],
+                           [1000, 500, 200, 200, 200, 200,
+                               200, 200, 200, 500, 1000],
+                           [1000, 500, 200, 50, 50, 50, 50, 50, 200, 500, 1000],
+                           [1000, 500, 200, 50, 10, 10, 10, 50, 200, 500, 1000],
+                           [1000, 500, 200, 50, 10, 0, 10, 50, 200, 500, 1000],
+                           [1000, 500, 200, 50, 10, 10, 10, 50, 200, 500, 1000],
+                           [1000, 500, 200, 50, 50, 50, 50, 50, 200, 500, 1000],
+                           [1000, 500, 200, 200, 200, 200,
+                               200, 200, 200, 500, 1000],
+                           [1000, 500, 500, 500, 500, 500,
+                               500, 500, 500, 500, 1000],
+                           [10000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 10000]]
+
+        #weight_king_mobility = 5
+
+        weight_king_sorrounded = 50000
+
+        weight_attacker = 12  # weight is given because inequal number of attacker and defender
+
+        weight_defender = 24
+
+        attacker = 0  # attacker count
+
+        defender = 0  # defender count
+
+        score = 0
+        '''
+         if self.fake_gameOver(fake_board)==1:  #if 1 then winner is attacker
+             score+=100000
+             return score
+
+         elif self.fake_gameOver(fake_board)==2: #if 1 then winner is defender
+             score-=100000
+             return score
+         
+         '''
+
+        for row_index, row in enumerate(fake_board):
+            for col_index, col in enumerate(row):
+                if(col == 'k'):
+                    r = row_index
+                    c = col_index
+                elif(col[0] == 'a'):
+                    attacker += 1
+                elif(col[0] == 'd'):
+                    defender += 1
+
+        score += (attacker*weight_attacker)
+        score -= (defender*weight_defender)
+        # score -= (weight_pos*weight_king_pos[r][c])
+        score -= (weight_pos*weight_king_pos[r-1][c-1])
+        #score -= (weight_king_mobility*self.king_mobility(fake_board, r, c))
+
+        score += (weight_king_sorrounded *
+                  self.king_sorrounded(fake_board, r, c))
+
+        return score
+
+    def fake_move(self, fake_board, commited_move, row, column):
+        # we could send kingr and kingc in arguments from caller function using piece_pos_this_state
         # fake board=current state fake board, commited move=the move to be executed
         # (piece, (where to))
-        for row_index, row in enumerate(fake_board):
-            f = True
-            for column_index, col in enumerate(row):
-                if(commited_move[0].pid == col):
-                    #col = '.'
-                    fake_board[row_index][column_index] = "."
-                    f = False
-                    break
+        # for row_index, row in enumerate(fake_board):
+        #     f = True
+        #     for column_index, col in enumerate(row):
+        #         if(commited_move[0].pid == col):
+        #             #col = '.'
+        #             fake_board[row_index][column_index] = "."
+        #             f = False
+        #             break
 
-            if not f:
-                break
+        #     if not f:
+        #         break
+        # optimized
+        # if king moves from center position, it needs to be marked as a restricted cell
+        if row == 6 and column == 6:
+            fake_board[row][column] = "x"
+        else:
+            fake_board[row][column] = "."
         # changed2
         fake_board[commited_move[1][0]][commited_move[1]
                                         [1]] = commited_move[0].pid
@@ -1311,29 +1460,61 @@ class AI_manager:
 
         return fake_board
 
+    def reverse_fake_move(self, fake_board, commited_move, row, column):
+        # due to annoying python behavior of pass by reference, every time fake_move is called
+        # caller function's local variable current_board gets modified
+        # so this function reverses that effect
+        fake_board[row][column] = commited_move[0].pid
+        if commited_move[1][0] == 6 and commited_move[1][1] == 6:
+            fake_board[commited_move[1][0]][commited_move[1][1]] = "x"
+        else:
+            fake_board[commited_move[1][0]][commited_move[1][1]] = "."
+
+        return fake_board
+
     def minimax(self, fake_board, alpha, beta, max_depth, turn):
 
         #print("minimax\n", fake_board)
         bestvalue = -10000000
-        moves = self.find_all_possible_valid_moves(
-            fake_board, True)  # True attacker ,False Defender
+
+        # if max_depth <= 0 or self.fake_gameOver(fake_board) == 1 or self.fake_gameOver(fake_board) == 2:
+        #    return self.evaluate(fake_board)
+
+        # if max_depth <= 0:
+        #     return self.evaluate(fake_board)
+
+        # elif self.fake_gameOver(fake_board) == 1:
+        #     return 100000
+
+        # elif self.fake_gameOver(fake_board) == 2:
+        #     return -100000
+
         if max_depth <= 0 or self.fake_gameOver(fake_board) == 1 or self.fake_gameOver(fake_board) == 2:
             return self.evaluate(fake_board)
 
+        moves, piece_pos_this_state = self.find_all_possible_valid_moves(
+            fake_board, turn)  # True attacker ,False Defender
         # list of all pieces corresponding at this state fake board
         '''fake board is copied into current board'''
 
         #print("before magic\n", fake_board)
         current_board = []
-        for row in range(len(fake_board)):
-            one_row = []
-            for column in range(len(fake_board[0])):
-                one_row.append(".")
-            current_board.append(one_row)
+        # for row in range(len(fake_board)):
+        #     one_row = []
+        #     for column in range(len(fake_board[0])):
+        #         one_row.append(".")
+        #     current_board.append(one_row)
 
+        # for row_index, row in enumerate(fake_board):
+        #     for col_index, column in enumerate(row):
+        #         current_board[row_index][col_index] = column
+
+        # optimized
         for row_index, row in enumerate(fake_board):
+            one_row = []
             for col_index, column in enumerate(row):
-                current_board[row_index][col_index] = column
+                one_row.append(fake_board[row_index][col_index])
+            current_board.append(one_row)
 
         #print("after magic\n", current_board)
 
@@ -1342,51 +1523,73 @@ class AI_manager:
             for i in moves:
                 #print("tmp_fake_board\n", fake_board)
                 #print("tmp_fake_board_below\n", current_board)
-                tmp_fake_board = self.fake_move(current_board, i)
+                # optimized
+                tmp_fake_board = self.fake_move(current_board, i,
+                                                piece_pos_this_state[i[0].pid][0], piece_pos_this_state[i[0].pid][1])
 
-                #print("tmp_fake_board_below 2\n", tmp_fake_board)
+                # print("tmp_fake_board_below 2\n", tmp_fake_board)
                 value = self.minimax(tmp_fake_board, alpha,
                                      beta, max_depth-1, False)
+                tmp_fake_board = self.reverse_fake_move(current_board, i,
+                                                        piece_pos_this_state[i[0].pid][0], piece_pos_this_state[i[0].pid][1])
                 bestvalue = max(value, bestvalue)
-                alpha = max(alpha, value)
+                alpha = max(alpha, bestvalue)
                 if(beta <= alpha):
                     break
 
         else:  # defender minimizer
             bestvalue = 10000000
             for i in moves:
-                tmp_fake_board = self.fake_move(current_board, i)
+                # optimized
+                tmp_fake_board = self.fake_move(current_board, i,
+                                                piece_pos_this_state[i[0].pid][0], piece_pos_this_state[i[0].pid][1])
                 value = self.minimax(tmp_fake_board, alpha,
                                      beta, max_depth-1, True)
+                tmp_fake_board = self.reverse_fake_move(current_board, i,
+                                                        piece_pos_this_state[i[0].pid][0], piece_pos_this_state[i[0].pid][1])
                 bestvalue = min(value, bestvalue)
-                beta = min(beta, value)
+                beta = min(beta, bestvalue)
                 if(beta <= alpha):
                     break
 
         return bestvalue
 
-    def strategy(self, current_board, moves):
+    def strategy(self, current_board):
 
         bestvalue = -1000000  # value to calcaute the move with best minimax value
-        max_depth = 3
+        max_depth = 2
         # True attacker ,False Defender  #moves =(piece_object,(row,col))
-        moves = self.find_all_possible_valid_moves(current_board, True)
+        moves, piece_pos_this_state = self.find_all_possible_valid_moves(
+            current_board, True)
 
+        c = 0
         for i in moves:   # iterate all possible valid moves and their corersponding min max value
-            #print("strategy\n", current_board)
-            fake_board = self.fake_move(current_board, i)
-            # #print(fake_board)
+            print("strategy\n", current_board)
+            # print("strategy 1466-ish ", c)
+            c += 1
+            # optimized
+            print("piece curr: ", i[0].pid, piece_pos_this_state[i[0].pid]
+                  [0], piece_pos_this_state[i[0].pid][1])
+
+            fake_board = self.fake_move(current_board, i,
+                                        piece_pos_this_state[i[0].pid][0], piece_pos_this_state[i[0].pid][1])
+            print(fake_board)
+
             value = self.minimax(fake_board, -10000000,
                                  10000000, max_depth-1, True)
+
+            fake_board = self.reverse_fake_move(current_board, i,
+                                                piece_pos_this_state[i[0].pid][0], piece_pos_this_state[i[0].pid][1])
+
             if(value > bestvalue):
                 bestmove = i
                 bestvalue = value
 
         return bestmove
 
-    def find_best_move(self, current_board, moves):
+    def find_best_move(self, current_board):
 
-        best_move = self.strategy(current_board, moves)
+        best_move = self.strategy(current_board)
 
         return best_move
 
@@ -1450,24 +1653,22 @@ class AI_manager:
                 if ptype == "a" and (ptype == opp2 or opp2 == "x"):
                     # a-d-a or a-d-res_cell situation
                     fake_board_with_border[item[0]][item[1]] = '.'
-                    '''
-                    for piece in All_pieces:
-                        if piece.pid == oppid:
-                            captured = True
-                            captured_pieces.append(piece)
-                            break
-                    '''
+
+                    # for piece in All_pieces:
+                    #     if piece.pid == oppid:
+                    #         captured = True
+                    #         captured_pieces.append(piece)
+                    #         break
 
                 elif ptype != "a" and opp2 != "a" and opp2 != "=" and opp == "a":
                     # d-a-d or k-a-d or d-a-k or d-a-res_cell or k-a-res_cell situation
                     fake_board_with_border[item[0]][item[1]] = '.'
-                    '''
-                    for piece in All_pieces:
-                        if piece.pid == oppid:
-                            captured = True
-                            captured_pieces.append(piece)
-                            break
-                    '''
+
+                    # for piece in All_pieces:
+                    #     if piece.pid == oppid:
+                    #         captured = True
+                    #         captured_pieces.append(piece)
+                    #         break
 
         return fake_board_with_border, king_captured
 
@@ -1578,7 +1779,7 @@ def game_window(screen, mode):
             txt = "Restart Game"
         else:
             txt = 'New Game'
-        
+
         newgamebtn = Custom_button(
             525, 20, txt, screen, pg.font.SysFont("Arial", 30))
 
@@ -1619,11 +1820,16 @@ def game_window(screen, mode):
                                 manager.match_finished()
                             else:
                                 manager.turn_msg(game_started)
+                            if manager.last_move is not None:
+                                pg.draw.circle(screen, red, (BOARD_LEFT+(manager.last_move[0][1]*CELL_WIDTH)+(
+                                    CELL_WIDTH/2), BOARD_TOP+(manager.last_move[0][0]*CELL_HEIGHT)+(CELL_HEIGHT/2)), 5)
+                                pg.draw.circle(screen, white, (BOARD_LEFT+(manager.last_move[1][1]*CELL_WIDTH)+(
+                                    CELL_WIDTH/2), BOARD_TOP+(manager.last_move[1][0]*CELL_HEIGHT)+(CELL_HEIGHT/2)), 5)
                             pg.display.update()
 
-        if game_started and mode == 1 and manager.turn:
+        if game_started and mode == 1 and manager.turn and not manager.finish:
             # time.sleep(1)
-            
+
             chessboard.draw_empty_board()
             for piece in All_pieces:
                 piece.draw_piece(screen)
@@ -1631,6 +1837,11 @@ def game_window(screen, mode):
                 manager.match_finished()
             else:
                 manager.turn_msg(game_started)
+            if manager.last_move is not None:
+                pg.draw.circle(screen, red, (BOARD_LEFT+(manager.last_move[0][1]*CELL_WIDTH)+(CELL_WIDTH/2), BOARD_TOP+(
+                    manager.last_move[0][0]*CELL_HEIGHT)+(CELL_HEIGHT/2)), 5)
+                pg.draw.circle(screen, white, (BOARD_LEFT+(manager.last_move[1][1]*CELL_WIDTH)+(CELL_WIDTH/2), BOARD_TOP+(
+                    manager.last_move[1][0]*CELL_HEIGHT)+(CELL_HEIGHT/2)), 5)
             pg.display.update()
             bot.move()
         for piece in All_pieces:
@@ -1646,7 +1857,11 @@ def game_window(screen, mode):
 
         # if mode == 1 and not manager.turn:
         #     manager.turn = True
-
+        if manager.last_move is not None:
+            pg.draw.circle(screen, red, (BOARD_LEFT+(manager.last_move[0][1]*CELL_WIDTH)+(CELL_WIDTH/2), BOARD_TOP+(
+                manager.last_move[0][0]*CELL_HEIGHT)+(CELL_HEIGHT/2)), 5)
+            pg.draw.circle(screen, white, (BOARD_LEFT+(manager.last_move[1][1]*CELL_WIDTH)+(CELL_WIDTH/2), BOARD_TOP+(
+                manager.last_move[1][0]*CELL_HEIGHT)+(CELL_HEIGHT/2)), 5)
         pg.display.update()
 
         # if manager.turn:
