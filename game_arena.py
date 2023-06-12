@@ -478,6 +478,7 @@ class Game_manager:
         self.current_board_status = []
         self.current_board_status_with_border = []
         self.mode = mode
+        self.last_move = None
 
         # initiating current_board_status and current_board_status_with_border.
         # initially board is in initial_pattern
@@ -880,18 +881,18 @@ class Game_manager:
         consolas = pg.font.SysFont("consolas", 22)
         if self.king_captured:
             if self.mode == 0:
-                write_text("KING CAPTURED !! ATTACKERS WIN !!", self.screen, (20, BOARD_TOP - 80), white,
-                       consolas, False)
+                write_text(">>> KING CAPTURED !! ATTACKERS WIN !!", self.screen, (20, BOARD_TOP - 80), white,
+                           consolas, False)
             else:
-                write_text("KING CAPTURED !! AI WINS !!", self.screen, (20, BOARD_TOP - 80), white,
-                       consolas, False)
-        
+                write_text(">>> KING CAPTURED !! AI WINS !!", self.screen, (20, BOARD_TOP - 80), white,
+                           consolas, False)
+
         elif self.king_escaped:
-            write_text("KING ESCAPED !! DEFENDERS WIN !!", self.screen, (20, BOARD_TOP - 80), white,
+            write_text(">>> KING ESCAPED !! DEFENDERS WIN !!", self.screen, (20, BOARD_TOP - 80), white,
                        consolas, False)
 
         elif self.all_attackers_dead:
-            write_text("ALL ATTACKERS DEAD !! DEFENDERS WIN !!", self.screen, (20, BOARD_TOP - 80), white,
+            write_text(">>> ALL ATTACKERS DEAD !! DEFENDERS WIN !!", self.screen, (20, BOARD_TOP - 80), white,
                        consolas, False)
 
         else:
@@ -960,8 +961,13 @@ class Game_manager:
                     if (msx >= pos[0] - PIECE_RADIUS) and (msx < pos[0] + PIECE_RADIUS):
                         if (msy >= pos[1] - PIECE_RADIUS) and (msy < pos[1] + PIECE_RADIUS):
                             # updating piece's position
+                            prev = (self.already_selected.row,
+                                    self.already_selected.column)
                             self.already_selected.update_piece_position(
                                 self.valid_moves[ind][0], self.valid_moves[ind][1])
+                            curr = (self.already_selected.row,
+                                    self.already_selected.column)
+                            self.last_move = (prev, curr)
                             # updating board status
                             self.update_board_status()
                             # playing a sound effect
@@ -988,8 +994,11 @@ class Game_manager:
 
         # updating piece's position
         self.already_selected = piece
+        prev = (self.already_selected.row, self.already_selected.column)
         # pg.draw.circle(self.screen, blue_zaffre, self.already_selected.center, 5)
         self.already_selected.update_piece_position(row-1, column-1)
+        curr = (row-1, column-1)
+        self.last_move = (prev, curr)
         # updating board status
         self.update_board_status()
         # playing a sound effect
@@ -1103,14 +1112,15 @@ class AI_manager:
             current_board[piece.row+1][piece.column+1] = piece.pid
 
         current_board[1][1] = current_board[1][rows] = current_board[rows][1] = current_board[rows][columns] = 'x'
-        
+        if current_board[6][6] != "k":
+            current_board[6][6] = "x"
+
         # #print(current_board)
 
         # find all possible valid move and return -> list[piece, (pair of indices)]
-        moves, piece_pos_this_state = self.find_all_possible_valid_moves(
-            current_board, True)
+        #moves, piece_pos_this_state = self.find_all_possible_valid_moves(current_board, True)
         # select the best move. implement algorithm here
-        piece, best_move = self.find_best_move(current_board, moves)
+        piece, best_move = self.find_best_move(current_board)
         # #print(best_move)
         row, col = best_move  # change
 
@@ -1360,24 +1370,28 @@ class AI_manager:
 
         weight_pos = 10
         weight_king_pos = [[10000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 10000],
-                           [1000, 500, 500, 500, 500, 500, 500, 500, 500, 500, 1000],
-                           [1000, 500, 200, 200, 200, 200, 200, 200, 200, 500, 1000],
+                           [1000, 500, 500, 500, 500, 500,
+                               500, 500, 500, 500, 1000],
+                           [1000, 500, 200, 200, 200, 200,
+                               200, 200, 200, 500, 1000],
                            [1000, 500, 200, 50, 50, 50, 50, 50, 200, 500, 1000],
                            [1000, 500, 200, 50, 10, 10, 10, 50, 200, 500, 1000],
                            [1000, 500, 200, 50, 10, 0, 10, 50, 200, 500, 1000],
                            [1000, 500, 200, 50, 10, 10, 10, 50, 200, 500, 1000],
                            [1000, 500, 200, 50, 50, 50, 50, 50, 200, 500, 1000],
-                           [1000, 500, 200, 200, 200, 200, 200, 200, 200, 500, 1000],
-                           [1000, 500, 500, 500, 500, 500, 500, 500, 500, 500, 1000],
+                           [1000, 500, 200, 200, 200, 200,
+                               200, 200, 200, 500, 1000],
+                           [1000, 500, 500, 500, 500, 500,
+                               500, 500, 500, 500, 1000],
                            [10000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 10000]]
 
-        weight_king_mobility = 5
+        #weight_king_mobility = 5
 
         weight_king_sorrounded = 50000
 
-        weight_attacker = 8  # weight is given because inequal number of attacker and defender
+        weight_attacker = 12  # weight is given because inequal number of attacker and defender
 
-        weight_defender = 16
+        weight_defender = 24
 
         attacker = 0  # attacker count
 
@@ -1408,15 +1422,14 @@ class AI_manager:
         score += (attacker*weight_attacker)
         score -= (defender*weight_defender)
         # score -= (weight_pos*weight_king_pos[r][c])
-        score-=(weight_pos*weight_king_pos[r-1][c-1])
-        score -= (weight_king_mobility*self.king_mobility(fake_board, r, c))
+        score -= (weight_pos*weight_king_pos[r-1][c-1])
+        #score -= (weight_king_mobility*self.king_mobility(fake_board, r, c))
 
         score += (weight_king_sorrounded *
                   self.king_sorrounded(fake_board, r, c))
 
-        return score    
-    
-    
+        return score
+
     def fake_move(self, fake_board, commited_move, row, column):
         # we could send kingr and kingc in arguments from caller function using piece_pos_this_state
         # fake board=current state fake board, commited move=the move to be executed
@@ -1447,25 +1460,23 @@ class AI_manager:
 
         return fake_board
 
-    
     def reverse_fake_move(self, fake_board, commited_move, row, column):
         # due to annoying python behavior of pass by reference, every time fake_move is called
         # caller function's local variable current_board gets modified
-        # so this function reverses that effect        
-        fake_board[row][column] = commited_move[0].pid        
+        # so this function reverses that effect
+        fake_board[row][column] = commited_move[0].pid
         if commited_move[1][0] == 6 and commited_move[1][1] == 6:
             fake_board[commited_move[1][0]][commited_move[1][1]] = "x"
         else:
             fake_board[commited_move[1][0]][commited_move[1][1]] = "."
-            
+
         return fake_board
-    
-    
+
     def minimax(self, fake_board, alpha, beta, max_depth, turn):
 
         #print("minimax\n", fake_board)
         bestvalue = -10000000
-        
+
         # if max_depth <= 0 or self.fake_gameOver(fake_board) == 1 or self.fake_gameOver(fake_board) == 2:
         #    return self.evaluate(fake_board)
 
@@ -1477,13 +1488,12 @@ class AI_manager:
 
         # elif self.fake_gameOver(fake_board) == 2:
         #     return -100000
-        
+
         if max_depth <= 0 or self.fake_gameOver(fake_board) == 1 or self.fake_gameOver(fake_board) == 2:
             return self.evaluate(fake_board)
 
-        
         moves, piece_pos_this_state = self.find_all_possible_valid_moves(
-            fake_board, True)  # True attacker ,False Defender
+            fake_board, turn)  # True attacker ,False Defender
         # list of all pieces corresponding at this state fake board
         '''fake board is copied into current board'''
 
@@ -1521,7 +1531,7 @@ class AI_manager:
                 value = self.minimax(tmp_fake_board, alpha,
                                      beta, max_depth-1, False)
                 tmp_fake_board = self.reverse_fake_move(current_board, i,
-                                            piece_pos_this_state[i[0].pid][0], piece_pos_this_state[i[0].pid][1])
+                                                        piece_pos_this_state[i[0].pid][0], piece_pos_this_state[i[0].pid][1])
                 bestvalue = max(value, bestvalue)
                 alpha = max(alpha, bestvalue)
                 if(beta <= alpha):
@@ -1536,7 +1546,7 @@ class AI_manager:
                 value = self.minimax(tmp_fake_board, alpha,
                                      beta, max_depth-1, True)
                 tmp_fake_board = self.reverse_fake_move(current_board, i,
-                                            piece_pos_this_state[i[0].pid][0], piece_pos_this_state[i[0].pid][1])
+                                                        piece_pos_this_state[i[0].pid][0], piece_pos_this_state[i[0].pid][1])
                 bestvalue = min(value, bestvalue)
                 beta = min(beta, bestvalue)
                 if(beta <= alpha):
@@ -1544,41 +1554,42 @@ class AI_manager:
 
         return bestvalue
 
-    def strategy(self, current_board, moves):
+    def strategy(self, current_board):
 
         bestvalue = -1000000  # value to calcaute the move with best minimax value
         max_depth = 2
         # True attacker ,False Defender  #moves =(piece_object,(row,col))
         moves, piece_pos_this_state = self.find_all_possible_valid_moves(
             current_board, True)
-        
+
         c = 0
         for i in moves:   # iterate all possible valid moves and their corersponding min max value
             print("strategy\n", current_board)
             # print("strategy 1466-ish ", c)
             c += 1
             # optimized
-            print("piece curr: ", i[0].pid, piece_pos_this_state[i[0].pid][0], piece_pos_this_state[i[0].pid][1])
-            
+            print("piece curr: ", i[0].pid, piece_pos_this_state[i[0].pid]
+                  [0], piece_pos_this_state[i[0].pid][1])
+
             fake_board = self.fake_move(current_board, i,
                                         piece_pos_this_state[i[0].pid][0], piece_pos_this_state[i[0].pid][1])
             print(fake_board)
-            
+
             value = self.minimax(fake_board, -10000000,
                                  10000000, max_depth-1, True)
-            
+
             fake_board = self.reverse_fake_move(current_board, i,
-                                        piece_pos_this_state[i[0].pid][0], piece_pos_this_state[i[0].pid][1])
-            
+                                                piece_pos_this_state[i[0].pid][0], piece_pos_this_state[i[0].pid][1])
+
             if(value > bestvalue):
                 bestmove = i
                 bestvalue = value
 
         return bestmove
 
-    def find_best_move(self, current_board, moves):
+    def find_best_move(self, current_board):
 
-        best_move = self.strategy(current_board, moves)
+        best_move = self.strategy(current_board)
 
         return best_move
 
@@ -1642,24 +1653,22 @@ class AI_manager:
                 if ptype == "a" and (ptype == opp2 or opp2 == "x"):
                     # a-d-a or a-d-res_cell situation
                     fake_board_with_border[item[0]][item[1]] = '.'
-                    
+
                     # for piece in All_pieces:
                     #     if piece.pid == oppid:
                     #         captured = True
                     #         captured_pieces.append(piece)
                     #         break
-                   
 
                 elif ptype != "a" and opp2 != "a" and opp2 != "=" and opp == "a":
                     # d-a-d or k-a-d or d-a-k or d-a-res_cell or k-a-res_cell situation
                     fake_board_with_border[item[0]][item[1]] = '.'
-                    
+
                     # for piece in All_pieces:
                     #     if piece.pid == oppid:
                     #         captured = True
                     #         captured_pieces.append(piece)
                     #         break
-                    
 
         return fake_board_with_border, king_captured
 
@@ -1811,6 +1820,11 @@ def game_window(screen, mode):
                                 manager.match_finished()
                             else:
                                 manager.turn_msg(game_started)
+                            if manager.last_move is not None:
+                                pg.draw.circle(screen, red, (BOARD_LEFT+(manager.last_move[0][1]*CELL_WIDTH)+(
+                                    CELL_WIDTH/2), BOARD_TOP+(manager.last_move[0][0]*CELL_HEIGHT)+(CELL_HEIGHT/2)), 5)
+                                pg.draw.circle(screen, white, (BOARD_LEFT+(manager.last_move[1][1]*CELL_WIDTH)+(
+                                    CELL_WIDTH/2), BOARD_TOP+(manager.last_move[1][0]*CELL_HEIGHT)+(CELL_HEIGHT/2)), 5)
                             pg.display.update()
 
         if game_started and mode == 1 and manager.turn and not manager.finish:
@@ -1823,6 +1837,11 @@ def game_window(screen, mode):
                 manager.match_finished()
             else:
                 manager.turn_msg(game_started)
+            if manager.last_move is not None:
+                pg.draw.circle(screen, red, (BOARD_LEFT+(manager.last_move[0][1]*CELL_WIDTH)+(CELL_WIDTH/2), BOARD_TOP+(
+                    manager.last_move[0][0]*CELL_HEIGHT)+(CELL_HEIGHT/2)), 5)
+                pg.draw.circle(screen, white, (BOARD_LEFT+(manager.last_move[1][1]*CELL_WIDTH)+(CELL_WIDTH/2), BOARD_TOP+(
+                    manager.last_move[1][0]*CELL_HEIGHT)+(CELL_HEIGHT/2)), 5)
             pg.display.update()
             bot.move()
         for piece in All_pieces:
@@ -1838,7 +1857,11 @@ def game_window(screen, mode):
 
         # if mode == 1 and not manager.turn:
         #     manager.turn = True
-
+        if manager.last_move is not None:
+            pg.draw.circle(screen, red, (BOARD_LEFT+(manager.last_move[0][1]*CELL_WIDTH)+(CELL_WIDTH/2), BOARD_TOP+(
+                manager.last_move[0][0]*CELL_HEIGHT)+(CELL_HEIGHT/2)), 5)
+            pg.draw.circle(screen, white, (BOARD_LEFT+(manager.last_move[1][1]*CELL_WIDTH)+(CELL_WIDTH/2), BOARD_TOP+(
+                manager.last_move[1][0]*CELL_HEIGHT)+(CELL_HEIGHT/2)), 5)
         pg.display.update()
 
         # if manager.turn:
