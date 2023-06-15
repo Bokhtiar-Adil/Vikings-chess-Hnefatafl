@@ -1095,6 +1095,8 @@ class AI_manager:
             current_board[piece.row+1][piece.column+1] = piece.pid
 
         current_board[1][1] = current_board[1][rows] = current_board[rows][1] = current_board[rows][columns] = 'x'
+        if current_board[6][6]!='k':
+             current_board[6][6]='x'
 
         # #print(current_board)
 
@@ -1307,8 +1309,8 @@ class AI_manager:
          #return 50
     
          weight_pos=5
-         weight_king_pos=[[10000 ,1000 ,1000 ,1000 ,1000 ,1000 ,1000 ,1000 ,1000 ,1000 ,10000],
-     	 [1000   ,500   ,500   ,500   ,500   ,500   ,500   ,500   ,500, 500 ,1000 ],
+         weight_king_pos=[[10000 ,10000 ,1000 ,1000 ,1000 ,1000 ,1000 ,1000 ,1000 ,10000 ,10000],
+     	 [10000   ,500   ,500   ,500   ,500   ,500   ,500   ,500   ,500, 500 ,10000 ],
      	 [1000   ,500   ,200   ,200   ,200   ,200   ,200   ,200   ,200 ,500 ,1000 ],
      	 [1000   ,500   ,200   ,50   ,50   ,50   ,50   ,50   ,200 ,500 ,1000 ],
      	 [1000   ,500   ,200   ,50   ,10    ,10    ,10    ,50   ,200 ,500 ,1000 ],
@@ -1316,8 +1318,8 @@ class AI_manager:
      	 [1000   ,500   ,200   ,50   ,10    ,10    ,10    ,50   ,200 ,500 ,1000 ],
      	 [1000   ,500   ,200   ,50   ,50   ,50   ,50   ,50   ,200 ,500 ,1000 ],
      	 [1000   ,500   ,200   ,200   ,200   ,200   ,200   ,200   ,200 ,500 ,1000 ],
-     	 [1000   ,500   ,500   ,500   ,500   ,500   ,500   ,500   ,500, 500 ,1000 ],
-     	 [10000 ,1000  ,1000  ,1000  ,1000  ,1000  ,1000  ,1000 ,1000 ,1000 ,10000] ]
+     	 [10000   ,500   ,500   ,500   ,500   ,500   ,500   ,500   ,500, 500 ,10000],
+     	 [10000 ,10000  ,1000  ,1000  ,1000  ,1000  ,1000  ,1000 ,1000 ,10000 ,10000] ]
          
 
          #weight_king_mobility=5
@@ -1335,17 +1337,18 @@ class AI_manager:
          score=0
          
          if self.fake_gameOver(fake_board)==1:  #if 1 then winner is attacker
-             score+=100000
+             print("c")
+             score+=10000000
              return score
 
          elif self.fake_gameOver(fake_board)==2: #if 1 then winner is defender
-             score-=100000
+             score-=10000000
              return score
          
-         self.sadman+=1
+         # self.sadman+=1
          for row_index,row in enumerate (fake_board):
-              if(self.sadman==100):
-                 print(row)
+              # if(self.sadman==100):
+              #    print(row)
               for col_index,col in enumerate(row):
                   if(col=='k'):
                       r=row_index
@@ -1356,6 +1359,29 @@ class AI_manager:
                       defender+=1
                       
          
+         if r-2<=1 and c-2<=1:
+             if fake_board[1][2][0] =='a':
+                score+=50000
+             if fake_board[2][1][0] =='a':
+                   score+=50000
+         elif r-2<=1 and c+2>=11:
+             if fake_board[1][10][0] =='a':
+                score+=50000
+             if fake_board[2][11][0] =='a':
+                   score+=50000
+             
+         elif r+2>=11 and c-2<=1:
+             if fake_board[10][1][0] =='a':
+                score+=50000
+             if fake_board[11][2][0] =='a':
+                   score+=50000
+             
+         elif r+2>=11 and c+2>=11:
+             if fake_board[11][10][0] =='a':
+                score+=50000
+             if fake_board[10][11][0] =='a':
+                   score+=50000
+             
          score+=(attacker*weight_attacker)
          score-=(defender*weight_defender)
          #score-=(weight_pos*weight_king_pos[r][c])
@@ -1381,27 +1407,37 @@ class AI_manager:
     def fake_move(self, fake_board, commited_move):
         # fake board=current state fake board, commited move=the move to be executed
         # (piece, (where to))
-        if fake_board[commited_move[1][0]][commited_move[1][1]] != '.':
-            return fake_board
+        current_board = []
+        for row in range(len(fake_board)):
+            one_row = []
+            for column in range(len(fake_board[0])):
+                one_row.append(".")
+            current_board.append(one_row)
+
         for row_index, row in enumerate(fake_board):
+            for col_index, column in enumerate(row):
+                current_board[row_index][col_index] = column
+                
+                
+        for row_index, row in enumerate(current_board):
             f = True
             for column_index, col in enumerate(row):
                 if(commited_move[0].pid == col):
                     #col = '.'
-                    fake_board[row_index][column_index] = "."
+                    current_board[row_index][column_index] = "."
                     f = False
                     break
 
             if not f:
                 break
         # changed2
-        fake_board[commited_move[1][0]][commited_move[1]
+        current_board[commited_move[1][0]][commited_move[1]
                                         [1]] = commited_move[0].pid
 
-        fake_board, king_captured = self.fake_capture_check(
-            fake_board, commited_move)
+        current_board, king_captured = self.fake_capture_check(
+            current_board, commited_move)
 
-        return fake_board
+        return current_board
 
     def minimax(self, fake_board, alpha, beta, max_depth, turn):
 
@@ -1604,8 +1640,7 @@ class AI_manager:
                     kingr = row_index
                     kingc = col_index
                     break
-        print(fake_board_with_border)
-        print(kingr, kingc)
+    
         front = fake_board_with_border[kingr][kingc+1][0]
         back = fake_board_with_border[kingr][kingc-1][0]
         up = fake_board_with_border[kingr-1][kingc][0]
@@ -1614,13 +1649,13 @@ class AI_manager:
         # if all four side has attackers or 3-attackers-one-bordercell situation occurs, king is captured
         # all other possible combos are discarded
         if front == "x" or back == "x" or up == "x" or down == "x":
-            return
+            return False
 
         elif front == "d" or back == "d" or up == "d" or down == "d":
-            return
+            return False
 
         elif front == "." or back == "." or up == "." or down == ".":
-            return
+            return False
 
         else:
             return True
