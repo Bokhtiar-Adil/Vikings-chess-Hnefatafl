@@ -170,27 +170,27 @@ class ChessBoard:
 
     def __init__(self, screen, board_size="large"):
         self.initial_pattern11 = ["x..aaaaa..x",
-                                ".....a.....",
-                                "...........",
-                                "a....d....a",
-                                "a...ddd...a",
-                                "aa.ddcdd.aa",
-                                "a...ddd...a",
-                                "a....d....a",
-                                "...........",
-                                ".....a.....",
-                                "x..aaaaa..x"]
-        
+                                  ".....a.....",
+                                  "...........",
+                                  "a....d....a",
+                                  "a...ddd...a",
+                                  "aa.ddcdd.aa",
+                                  "a...ddd...a",
+                                  "a....d....a",
+                                  "...........",
+                                  ".....a.....",
+                                  "x..aaaaa..x"]
+
         self.initial_pattern9 = ["x..aaa..x",
-                                "....a....",
-                                ".........",
-                                "a..ddd..a",
-                                "aa.dcd.aa",
-                                "a..ddd..a",
-                                ".........",
-                                "....a....",
-                                "x..aaa..x"]
-        
+                                 "....a....",
+                                 ".........",
+                                 "a..ddd..a",
+                                 "aa.dcd.aa",
+                                 "a..ddd..a",
+                                 ".........",
+                                 "....a....",
+                                 "x..aaa..x"]
+
         if board_size == "large":
             self.initial_pattern = self.initial_pattern11
         else:
@@ -204,7 +204,6 @@ class ChessBoard:
         self.restricted_cells = [(0, 0), (0, self.columns-1), (int(self.rows/2), int(
             self.columns/2)), (self.rows-1, 0), (self.rows-1, self.columns-1)]
 
-    
     def draw_empty_board(self):
         '''
         This method draws an empty board with no piece on given surface
@@ -235,7 +234,7 @@ class ChessBoard:
             write_text(str(row), self.screen, (BOARD_LEFT + row*CELL_WIDTH +
                        PIECE_RADIUS, BOARD_TOP - 30), (255, 255, 255), pg.font.SysFont("Arial", 15), False)
             for column in range(self.columns):
-                
+
                 cell_rect = pg.Rect(BOARD_LEFT + column * self.cell_width, BOARD_TOP +
                                     row * self.cell_height, self.cell_width, self.cell_height)
 
@@ -485,7 +484,7 @@ class Game_manager:
 
     '''
 
-    def __init__(self, screen, board, mode, board_size = "large"):
+    def __init__(self, screen, board, mode, board_size="large"):
         self.screen = screen
         self.board = board
         self.turn = True
@@ -1080,7 +1079,6 @@ class AI_manager:
         self.manager = manager
         self.screen = screen
         self.sadman = 0
-        
 
     def move(self):
 
@@ -1506,10 +1504,20 @@ class AI_manager:
         fake_board[commited_move[1][0]][commited_move[1]
                                         [1]] = commited_move[0].pid
 
+
         fake_board, king_captured = self.fake_capture_check(
             fake_board, commited_move)
+        
+        attacker = 0
+        defender = 0
+        for row_index, row in enumerate(fake_board):
+            for col_index, col in enumerate(row):
+                if(col[0] == 'a'):
+                    attacker += 1
+                elif(col[0] == 'd'):
+                    defender += 1
 
-        return fake_board
+        return fake_board, attacker - defender
 
     def reverse_fake_move(self, fake_board, commited_move, row, column):
         # due to annoying python behavior of pass by reference, every time fake_move is called
@@ -1575,8 +1583,8 @@ class AI_manager:
                 #print("tmp_fake_board\n", fake_board)
                 #print("tmp_fake_board_below\n", current_board)
                 # optimized
-                tmp_fake_board = self.fake_move(current_board, i,
-                                                piece_pos_this_state[i[0].pid][0], piece_pos_this_state[i[0].pid][1])
+                tmp_fake_board, diff = self.fake_move(current_board, i,
+                                                      piece_pos_this_state[i[0].pid][0], piece_pos_this_state[i[0].pid][1])
 
                 # print("tmp_fake_board_below 2\n", tmp_fake_board)
                 value = self.minimax(tmp_fake_board, alpha,
@@ -1592,8 +1600,8 @@ class AI_manager:
             bestvalue = 10000000000
             for i in moves:
                 # optimized
-                tmp_fake_board = self.fake_move(current_board, i,
-                                                piece_pos_this_state[i[0].pid][0], piece_pos_this_state[i[0].pid][1])
+                tmp_fake_board, diff = self.fake_move(current_board, i,
+                                                      piece_pos_this_state[i[0].pid][0], piece_pos_this_state[i[0].pid][1])
                 value = self.minimax(tmp_fake_board, alpha,
                                      beta, max_depth-1, True)
                 tmp_fake_board = self.reverse_fake_move(current_board, i,
@@ -1608,12 +1616,13 @@ class AI_manager:
     def strategy(self, current_board):
 
         bestvalue = -10000000000  # value to calcaute the move with best minimax value
-        max_depth = 2
+        max_depth = 3
         # True attacker ,False Defender  #moves =(piece_object,(row,col))
         moves, piece_pos_this_state = self.find_all_possible_valid_moves(
             current_board, True)
 
         c = 0
+        diffs = {}
         for i in moves:   # iterate all possible valid moves and their corersponding min max value
             # print("strategy\n", current_board)
             # print("strategy 1466-ish ", c)
@@ -1622,8 +1631,8 @@ class AI_manager:
             # print("piece curr: ", i[0].pid, piece_pos_this_state[i[0].pid]
             # [0], piece_pos_this_state[i[0].pid][1])
 
-            fake_board = self.fake_move(current_board, i,
-                                        piece_pos_this_state[i[0].pid][0], piece_pos_this_state[i[0].pid][1])
+            fake_board, diff = self.fake_move(current_board, i,
+                                              piece_pos_this_state[i[0].pid][0], piece_pos_this_state[i[0].pid][1])
             # print(fake_board)
 
             value = self.minimax(fake_board, -10000000000,
@@ -1632,10 +1641,15 @@ class AI_manager:
             fake_board = self.reverse_fake_move(current_board, i,
                                                 piece_pos_this_state[i[0].pid][0], piece_pos_this_state[i[0].pid][1])
 
-            print("value: ", value)
+            print("move and value and diff: ", i[1], value, diff)
             if(value > bestvalue):
                 bestmove = i
                 bestvalue = value
+                diffs[value] = diff
+            elif(value == bestvalue and diff > diffs[value]):
+                bestmove = i
+                bestvalue = value
+                diffs[value] = diff
 
         return bestmove
 
@@ -1827,23 +1841,22 @@ def game_window(screen, mode):
                    pg.font.SysFont("Arial", 40))
         backbtn = Custom_button(750, 20, "Back", screen,
                                 pg.font.SysFont("Arial", 30))
-        
-        
+
         write_text("Game Settings", screen, (WINDOW_WIDTH - 250, BOARD_TOP), (255, 255, 255),
-                   pg.font.SysFont("Arial", 25))
-        
+                   pg.font.SysFont("Arial", 25), False)
+
         write_text("Board Size:", screen, (WINDOW_WIDTH - 300, BOARD_TOP + SETTINGS_TEXT_GAP_VERTICAL + 10), (255, 255, 255),
                    pg.font.SysFont("Arial", 20), False)
-        
+
         size9by9btn = Custom_button(WINDOW_WIDTH - 300 + SETTINGS_TEXT_GAP_HORIZONTAL, BOARD_TOP + SETTINGS_TEXT_GAP_VERTICAL, "9x9", screen,
-                                pg.font.SysFont("Arial", 20), width = 50, height = 50)
-        
+                                    pg.font.SysFont("Arial", 20), width=50, height=50)
+
         size11by11btn = Custom_button(WINDOW_WIDTH - 300 + SETTINGS_TEXT_GAP_HORIZONTAL*1.7, BOARD_TOP + SETTINGS_TEXT_GAP_VERTICAL, "11x11", screen,
-                                pg.font.SysFont("Arial", 20), width = 50, height = 50)
-        
+                                      pg.font.SysFont("Arial", 20), width=50, height=50)
+
         backbtn = Custom_button(750, 20, "Back", screen,
                                 pg.font.SysFont("Arial", 30))
-        
+
         if game_started:
             txt = "Restart Game"
         else:
@@ -1855,7 +1868,7 @@ def game_window(screen, mode):
         if backbtn.draw_button():
             pg.mixer.Sound.play(pg.mixer.Sound(click_snd))
             main()
-            
+
         if size9by9btn.draw_button():
             pg.mixer.Sound.play(pg.mixer.Sound(click_snd))
             game_started = True
@@ -1866,7 +1879,7 @@ def game_window(screen, mode):
             manager = Game_manager(screen, chessboard, mode, "small")
             if mode == 1:
                 bot = AI_manager(manager, screen)
-        
+
         if size11by11btn.draw_button():
             pg.mixer.Sound.play(pg.mixer.Sound(click_snd))
             game_started = True
