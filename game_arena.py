@@ -1115,21 +1115,32 @@ class AI_manager:
         valid_moves = []
         # needs a list of pair containing the fake pos of pieces at current fake state
         #print("board_status:\n", board_status_at_this_state)
-        piece_pos_this_state = []
+        # piece_pos_this_state = []
+        # for row_ind, row in enumerate(board_status_at_this_state):
+        #     for col_ind, column in enumerate(row):
+        #         if column != "." and column != "x" and column != "=":
+        #             piece_pos_this_state.append((column, (row_ind, col_ind)))
+
+        # optimized
+        piece_pos_this_state = {}
         for row_ind, row in enumerate(board_status_at_this_state):
             for col_ind, column in enumerate(row):
                 if column != "." and column != "x" and column != "=":
-                    piece_pos_this_state.append((column, (row_ind, col_ind)))
+                    piece_pos_this_state[column] = (row_ind, col_ind)
 
         #print("piece_pos_this_state:\n", piece_pos_this_state)
-
-        for each in piece_pos_this_state:
+        # optimized
+        for each in piece_pos_this_state.keys():
             piece = each[0]
+            # print("\n\n\n1136 ish ", each, piece, each[0])
             if (fake_turn and not piece[0] == "a") or (not fake_turn and piece[0] == "a"):
                 continue
             # #print("here 3")
-            tempr = each[1][0]
-            tempc = each[1][1]
+            # optimized
+            # tempr = each[1][0]
+            # tempc = each[1][1]
+            tempr = piece_pos_this_state[each][0]
+            tempc = piece_pos_this_state[each][1]
             # #print(tempr, tempc)
 
             # finding valid moves in upwards direction
@@ -1139,28 +1150,37 @@ class AI_manager:
                 # stores current row and column
                 thispos = board_status_at_this_state[tempr][tempc][0]
                 # if finds any piece, no move left in this direction anymore
-                if thispos == "a" or thispos == "d" or thispos == "k" or thispos == "=":
+                if thispos == "a" or thispos == "d" or thispos == "k" or thispos == "=" or (thispos == "x" and piece != "k"):
                     break
                 else:
                     # this part is commented out because so far ai is only attacker and this part checks both 'a' or 'd'
                     # # if selected piece is king, only one move per direction is allowed
                     if piece == "k":
-                        if tempr < each[1][0] - 1 or tempr > each[1][0] + 1:
+                        if tempr < piece_pos_this_state[each][0] - 1 or tempr > piece_pos_this_state[each][0] + 1:
                             break
                         # valid_moves.append((piece, (tempr, tempc)))
+                        # optimized
+                        # valid_moves.append(
+                        #     (piece_pid_map[piece], (tempr, tempc)))
                         valid_moves.append(
-                            (piece_pid_map[piece], (tempr, tempc)))
+                            (piece_pid_map[each], (tempr, tempc)))
                     else:
                         # "." means empty cell
                         if thispos == ".":
                             # valid_moves.append((piece, (tempr, tempc)))
+                            # optimized
+                            # valid_moves.append(
+                            #     (piece_pid_map[piece], (tempr, tempc)))
                             valid_moves.append(
-                                (piece_pid_map[piece], (tempr, tempc)))
+                                (piece_pid_map[each], (tempr, tempc)))
 
                 tempr -= 1
 
-            tempr = each[1][0]
-            tempc = each[1][1]
+            # optimized
+            # tempr = each[1][0]
+            # tempc = each[1][1]
+            tempr = piece_pos_this_state[each][0]
+            tempc = piece_pos_this_state[each][1]
 
             # finding valid moves in downwards direction
             tempr += 1
@@ -1169,27 +1189,36 @@ class AI_manager:
                 # stores current row and column
                 thispos = board_status_at_this_state[tempr][tempc][0]
                 # if finds any piece, no move left in this direction anymore
-                if thispos == "a" or thispos == "d" or thispos == "k" or thispos == "=":
+                if thispos == "a" or thispos == "d" or thispos == "k" or thispos == "=" or (thispos == "x" and piece != "k"):
                     break
                 else:
                     # # if selected piece is king, only one move per direction is allowed
                     if piece == "k":
-                        if tempr < each[1][0] - 1 or tempr > each[1][0] + 1:
+                        if tempr < piece_pos_this_state[each][0] - 1 or tempr > piece_pos_this_state[each][0] + 1:
                             break
                         # valid_moves.append((piece, (tempr, tempc)))
+                        # optimized
+                        # valid_moves.append(
+                        #     (piece_pid_map[piece], (tempr, tempc)))
                         valid_moves.append(
-                            (piece_pid_map[piece], (tempr, tempc)))
+                            (piece_pid_map[each], (tempr, tempc)))
                     else:
                         # "." means empty cell
                         if thispos == ".":
                             # valid_moves.append((piece, (tempr, tempc)))
+                            # optimized
+                            # valid_moves.append(
+                            #     (piece_pid_map[piece], (tempr, tempc)))
                             valid_moves.append(
-                                (piece_pid_map[piece], (tempr, tempc)))
+                                (piece_pid_map[each], (tempr, tempc)))
 
                 tempr += 1
 
-            tempr = each[1][0]
-            tempc = each[1][1]
+            # optimized
+            # tempr = each[1][0]
+            # tempc = each[1][1]
+            tempr = piece_pos_this_state[each][0]
+            tempc = piece_pos_this_state[each][1]
 
             # finding valid moves in left direction
             tempc -= 1
@@ -1198,27 +1227,38 @@ class AI_manager:
                 # stores current row and column
                 thispos = board_status_at_this_state[tempr][tempc][0]
                 # if finds any piece, no move left in this direction anymore
-                if thispos == "a" or thispos == "d" or thispos == "k" or thispos == "=":
+                if thispos == "a" or thispos == "d" or thispos == "k" or thispos == "=" or (thispos == "x" and piece != "k"):
                     break
                 else:
                     # # if selected piece is king, only one move per direction is allowed
                     if piece == "k":
-                        if tempc < each[1][1] - 1 or tempc > each[1][1] + 1:
+                        # print("g: ", piece_pos_this_state)
+                        # print("g: ", each)
+                        if tempc < piece_pos_this_state[each][1] - 1 or tempc > piece_pos_this_state[each][1] + 1:
                             break
                         # valid_moves.append((piece, (tempr, tempc)))
+                        # optimized
+                        # valid_moves.append(
+                        #     (piece_pid_map[piece], (tempr, tempc)))
                         valid_moves.append(
-                            (piece_pid_map[piece], (tempr, tempc)))
+                            (piece_pid_map[each], (tempr, tempc)))
                     else:
                         # "." means empty cell
                         if thispos == ".":
                             # valid_moves.append((piece, (tempr, tempc)))
+                            # optimized
+                            # valid_moves.append(
+                            #     (piece_pid_map[piece], (tempr, tempc)))
                             valid_moves.append(
-                                (piece_pid_map[piece], (tempr, tempc)))
+                                (piece_pid_map[each], (tempr, tempc)))
 
                 tempc -= 1
 
-            tempr = each[1][0]
-            tempc = each[1][1]
+            # optimized
+            # tempr = each[1][0]
+            # tempc = each[1][1]
+            tempr = piece_pos_this_state[each][0]
+            tempc = piece_pos_this_state[each][1]
 
             # finding valid moves in right direction
             tempc += 1
@@ -1227,27 +1267,36 @@ class AI_manager:
                 # stores current row and column
                 thispos = board_status_at_this_state[tempr][tempc][0]
                 # if finds any piece, no move left in this direction anymore
-                if thispos == "a" or thispos == "d" or thispos == "k" or thispos == "=":
+                if thispos == "a" or thispos == "d" or thispos == "k" or thispos == "=" or (thispos == "x" and piece != "k"):
                     break
                 else:
                     # # if selected piece is king, only one move per direction is allowed
                     if piece == "k":
-                        if tempc < each[1][1] - 1 or tempc > each[1][1] + 1:
+                        # print("g: ", piece_pos_this_state)
+                        # print("g: ", each)
+                        if tempc < piece_pos_this_state[each][1] - 1 or tempc > piece_pos_this_state[each][1] + 1:
                             break
                         # valid_moves.append((piece, (tempr, tempc)))
+                        # optimized
+                        # valid_moves.append(
+                        #     (piece_pid_map[piece], (tempr, tempc)))
                         valid_moves.append(
-                            (piece_pid_map[piece], (tempr, tempc)))
+                            (piece_pid_map[each], (tempr, tempc)))
                     else:
                         # "." means empty cell
                         if thispos == ".":
                             # valid_moves.append((piece, (tempr, tempc)))
+                            # optimized
+                            # valid_moves.append(
+                            #     (piece_pid_map[piece], (tempr, tempc)))
                             valid_moves.append(
-                                (piece_pid_map[piece], (tempr, tempc)))
+                                (piece_pid_map[each], (tempr, tempc)))
 
                 tempc += 1
 
         # print("valid\n", valid_moves)
         return valid_moves
+
 
     def king_mobility(self,fake_board,r,c):
         score=0
@@ -1392,8 +1441,8 @@ class AI_manager:
          
          #print("yoyo")
         
-         if(self.sadman==100):             
-           print(score)
+         # if(self.sadman==100):             
+         #   print(score)
 
          
          return score
@@ -1436,8 +1485,19 @@ class AI_manager:
 
         current_board, king_captured = self.fake_capture_check(
             current_board, commited_move)
+        
+        attacker=0
+        defender=0
+        for row_index,row in enumerate (current_board):
+             # if(self.sadman==100):
+             #    print(row)
+             for col_index,col in enumerate(row):
+                 if(col[0]=='a'):
+                     attacker+=1
+                 elif(col[0]=='d'):
+                     defender+=1
 
-        return current_board
+        return current_board,attacker-defender
 
     def minimax(self, fake_board, alpha, beta, max_depth, turn):
 
@@ -1471,11 +1531,11 @@ class AI_manager:
         #print("after magic\n", current_board)
 
         if(turn == True):  # attacker  maximizer
-            bestvalue = -10000000
+            bestvalue = -1000000000000000000
             for i in moves:
                 #print("tmp_fake_board\n", fake_board)
                 #print("tmp_fake_board_below\n", current_board)
-                tmp_fake_board = self.fake_move(current_board, i)
+                tmp_fake_board,diff = self.fake_move(current_board, i)
 
                 #print("tmp_fake_board_below 2\n", tmp_fake_board)
                 value = self.minimax(tmp_fake_board, alpha,
@@ -1486,9 +1546,9 @@ class AI_manager:
                     break
 
         else:  # defender minimizer
-            bestvalue = 10000000
+            bestvalue = 1000000000000000000
             for i in moves:
-                tmp_fake_board = self.fake_move(current_board, i)
+                tmp_fake_board,diff = self.fake_move(current_board, i)
                 value = self.minimax(tmp_fake_board, alpha,
                                      beta, max_depth-1, True)
                 bestvalue = min(value, bestvalue)
@@ -1500,23 +1560,33 @@ class AI_manager:
 
     def strategy(self, current_board):
 
-        bestvalue = -1000000  # value to calcaute the move with best minimax value
+        bestvalue = -1000000000000000000 # value to calcaute the move with best minimax value
         max_depth = 2
         # True attacker ,False Defender  #moves =(piece_object,(row,col))
         moves = self.find_all_possible_valid_moves(current_board, True)
         c=0
         print("yoyo")
+        diffs={}
         for i in moves:   # iterate all possible valid moves and their corersponding min max value
             #print("strategy\n", current_board)
             c+=1
-            fake_board = self.fake_move(current_board, i)
+            fake_board,diff = self.fake_move(current_board, i)
             # #print(fake_board)
             value = self.minimax(fake_board, -10000000,
                                  10000000, max_depth-1, False)
-            print(value)
+            print(value,i[1],diff)
             if(value > bestvalue):
                 bestmove = i
                 bestvalue = value
+                diffs[value]=diff
+                
+            elif(value==bestvalue and diff>diffs[value]):
+                bestmove = i
+                bestvalue = value
+                diffs[value]=diff
+            
+            if(value==bestvalue and (i[1]==(1,2) or i[1]==(2,1) or i[1]==(1,10) or i[1]==(2,11) or i[1]==(10,1) or i[1]==(11,2) or i[1]==(10,11) or i[1]==(11,10) ) ):
+                bestmove = i
 
         return bestmove
 
