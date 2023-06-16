@@ -1480,6 +1480,10 @@ class AI_manager:
             if not f:
                 break
         # changed2
+        # r=int((self.rows+1)/2) 
+        # c=int((self.columns+1)/2)
+        if current_board[6][6] == ".":
+            current_board[6][6]='x'
         current_board[commited_move[1][0]][commited_move[1]
                                         [1]] = commited_move[0].pid
 
@@ -1496,6 +1500,9 @@ class AI_manager:
                      attacker+=1
                  elif(col[0]=='d'):
                      defender+=1
+                     
+        if current_board[6][6] == ".":
+             current_board[6][6]='x'
 
         return current_board,attacker-defender
 
@@ -1561,7 +1568,7 @@ class AI_manager:
     def strategy(self, current_board):
 
         bestvalue = -1000000000000000000 # value to calcaute the move with best minimax value
-        max_depth = 2
+        max_depth = 3
         # True attacker ,False Defender  #moves =(piece_object,(row,col))
         moves = self.find_all_possible_valid_moves(current_board, True)
         c=0
