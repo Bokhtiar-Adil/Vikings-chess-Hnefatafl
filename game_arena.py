@@ -1130,8 +1130,8 @@ class AI_manager:
             current_board[piece.row+1][piece.column+1] = piece.pid
 
         current_board[1][1] = current_board[1][rows] = current_board[rows][1] = current_board[rows][columns] = 'x'
-        if current_board[int(self.rows+1/2)][int(self.columns+1/2)] != 'k':
-            current_board[int(self.rows+1/2)][int(self.columns+1/2)] = 'x'
+        if current_board[int((self.rows+1)/2)][int((self.columns+1)/2)] != 'k':
+            current_board[int((self.rows+1)/2)][int((self.columns+1)/2)] = 'x'
 
         # #print(current_board)
 
@@ -1391,22 +1391,36 @@ class AI_manager:
         # return 50
 
         weight_pos = 5
-        weight_king_pos = [[10000, 10000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 10000, 10000],
-                           [10000, 500, 500, 500, 500, 500,
-                               500, 500, 500, 500, 10000],
-                           [1000, 500, 200, 200, 200, 200,
-                               200, 200, 200, 500, 1000],
-                           [1000, 500, 200, 50, 50, 50, 50, 50, 200, 500, 1000],
-                           [1000, 500, 200, 50, 10, 10, 10, 50, 200, 500, 1000],
-                           [1000, 500, 200, 50, 10, 0, 10, 50, 200, 500, 1000],
-                           [1000, 500, 200, 50, 10, 10, 10, 50, 200, 500, 1000],
-                           [1000, 500, 200, 50, 50, 50, 50, 50, 200, 500, 1000],
-                           [1000, 500, 200, 200, 200, 200,
-                               200, 200, 200, 500, 1000],
-                           [10000, 500, 500, 500, 500, 500,
-                               500, 500, 500, 500, 10000],
-                           [10000, 10000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 10000, 10000]]
+        weight_king_pos_11 = [[10000, 10000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 10000, 10000],
+                             [10000, 500, 500, 500, 500, 500,
+                              500, 500, 500, 500, 10000],
+                             [1000, 500, 200, 200, 200, 200,
+                              200, 200, 200, 500, 1000],
+                             [1000, 500, 200, 50, 50, 50, 50, 50, 200, 500, 1000],
+                             [1000, 500, 200, 50, 10, 10, 10, 50, 200, 500, 1000],
+                             [1000, 500, 200, 50, 10, 0, 10, 50, 200, 500, 1000],
+                             [1000, 500, 200, 50, 10, 10, 10, 50, 200, 500, 1000],
+                             [1000, 500, 200, 50, 50, 50, 50, 50, 200, 500, 1000],
+                             [1000, 500, 200, 200, 200, 200,
+                              200, 200, 200, 500, 1000],
+                             [10000, 500, 500, 500, 500, 500,
+                              500, 500, 500, 500, 10000],
+                             [10000, 10000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 10000, 10000]]
 
+        weight_king_pos_9 = [[5000, 5000, 500, 500, 500, 500, 500, 5000, 5000],
+                            [5000, 200, 200, 200, 200, 200, 200, 200, 5000],
+                            [500, 200, 50, 50, 50, 50, 50, 200, 500],
+                            [500, 200, 50, 10, 10, 10, 50, 200, 500],
+                            [500, 200, 50, 10, 0, 10, 50, 200, 500],
+                            [500, 200, 50, 10, 10, 10, 50, 200, 500],
+                            [500, 200, 50, 50, 50, 50, 50, 200, 500],
+                            [5000, 200, 200, 200, 200, 200, 200, 200, 5000],
+                            [5000, 5000, 500, 500, 500, 500, 500, 5000, 5000]]
+
+        if self.manager.board_size == "large":
+            weight_king_pos = weight_king_pos_11
+        else:
+            weight_king_pos = weight_king_pos_9
         # weight_king_mobility=5
 
         weight_king_sorrounded = 50000
@@ -1691,22 +1705,22 @@ class AI_manager:
                 if ptype == "a" and (ptype == opp2 or opp2 == "x"):
                     # a-d-a or a-d-res_cell situation
                     fake_board_with_border[item[0]][item[1]] = '.'
-                    
+
                     # for piece in All_pieces:
                     #     if piece.pid == oppid:
                     #         captured = True
                     #         captured_pieces.append(piece)
-                    #         break                    
+                    #         break
 
                 elif ptype != "a" and opp2 != "a" and opp2 != "=" and opp == "a":
                     # d-a-d or k-a-d or d-a-k or d-a-res_cell or k-a-res_cell situation
                     fake_board_with_border[item[0]][item[1]] = '.'
-                    
+
                     # for piece in All_pieces:
                     #     if piece.pid == oppid:
                     #         captured = True
                     #         captured_pieces.append(piece)
-                    #         break                    
+                    #         break
 
         return fake_board_with_border, king_captured
 
@@ -1745,7 +1759,7 @@ class AI_manager:
                     kingc = col_index
                     break
 
-        #print(kingr, kingc)        
+        #print(kingr, kingc)
         front = fake_board_with_border[kingr][kingc+1][0]
         back = fake_board_with_border[kingr][kingc-1][0]
         up = fake_board_with_border[kingr-1][kingc][0]
