@@ -2015,6 +2015,29 @@ def rules(screen):
         if backbtn.draw_button():
             pg.mixer.Sound.play(pg.mixer.Sound(click_snd))
             main()
+        
+        msgs = []
+        msgs.append("> Turn based game.")
+        msgs.append("> Two board sizes: 'large' - 11x11 and 'small' - 9x9.")
+        msgs.append("> Center cell and four corner cells are called restricted cells.")
+        msgs.append("> Excluding king, a-d count is 24-12 on large board and 16-8 on small board.")
+        msgs.append("> All pieces except king can move any number of cells horizontally or vertically.")
+        msgs.append("> King can move only one cell at a time.")
+        msgs.append("> Only king can move to any of the restricted cells.")
+        msgs.append("> Pieces, except king, can be captured by sandwitching them from both sides.")
+        msgs.append("> Restricted cells can be used to sandwitch opponent.")
+        msgs.append("> Only one opponent piece can be captured in single line with single move.")
+        msgs.append("> Multiple pieces can be captured with a single move on cardinal points.")
+        msgs.append("> To capture king, attackers need to sorround him on all four cardinal points.")
+        msgs.append("> If king is captured, attackers win.")
+        msgs.append("> If king escapes to any of the four corner cells, defenders win.")
+        msgs.append("> If all attackers are captured, defenders win.")
+        
+        consolas = pg.font.SysFont("consolas", 20)
+        cnt = 0
+        for msg in msgs:
+            write_text(msg, screen, (20, BOARD_TOP - 80 + 40*cnt), white, consolas, False)
+            cnt += 1        
 
         for event in pg.event.get():
             if event.type == pg.QUIT:
@@ -2036,6 +2059,19 @@ def history(screen):
         if backbtn.draw_button():
             pg.mixer.Sound.play(pg.mixer.Sound(click_snd))
             main()
+            
+        msgs = []
+        msgs.append("> Originated in Scandinavia.")
+        msgs.append("> Developed from a Roman game called Ludus Latrunculorum.")
+        msgs.append("> This game flourished until the arrival of chess.")
+        msgs.append("> This game was revived back in nineteenth century.")
+        
+        
+        consolas = pg.font.SysFont("consolas", 20)
+        cnt = 0
+        for msg in msgs:
+            write_text(msg, screen, (20, BOARD_TOP - 80 + 40*cnt), white, consolas, False)
+            cnt += 1        
 
         for event in pg.event.get():
             if event.type == pg.QUIT:
