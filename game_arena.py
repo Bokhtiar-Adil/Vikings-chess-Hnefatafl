@@ -1417,26 +1417,27 @@ class AI_manager:
                               [10000, 10000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 10000, 10000]]
 
         # for 9x9 board
-        weight_king_pos_9 = [[5000, 5000, 500, 500, 500, 500, 500, 5000, 5000],
-                             [5000, 200, 200, 200, 200, 200, 200, 200, 5000],
-                             [500, 200, 50, 50, 50, 50, 50, 200, 500],
-                             [500, 200, 50, 10, 10, 10, 50, 200, 500],
-                             [500, 200, 50, 10, 0, 10, 50, 200, 500],
-                             [500, 200, 50, 10, 10, 10, 50, 200, 500],
-                             [500, 200, 50, 50, 50, 50, 50, 200, 500],
-                             [5000, 200, 200, 200, 200, 200, 200, 200, 5000],
-                             [5000, 5000, 500, 500, 500, 500, 500, 5000, 5000]]
+        weight_king_pos_9 = [[10000, 10000, 10000, 10000, 10000, 10000, 10000, 10000, 10000],
+                            [10000, 500, 500, 500, 500, 500, 500, 500, 10000],
+                            [10000, 500, 150, 150, 150, 150, 150, 500, 10000],
+                            [10000, 500, 150, 30, 30, 30, 150, 500, 10000],
+                            [10000, 500, 150, 30, 0, 30, 150, 500, 10000],
+                            [10000, 500, 150, 30, 30, 30, 150, 500, 10000],
+                            [10000, 500, 150, 150, 150, 150, 150, 500, 10000],
+                            [10000, 500, 500, 500, 500, 500, 500, 500, 10000],
+                            [10000, 10000, 10000, 10000, 10000, 10000, 10000, 10000, 10000]]
 
         if self.manager.board_size == "large":
             weight_king_pos = weight_king_pos_11
+            weight_attacker = 12  # weight is given because inequal number of attacker and defender
+            weight_defender = 24
         else:
             weight_king_pos = weight_king_pos_9
+            weight_attacker = 8  # weight is given because inequal number of attacker and defender
+            weight_defender = 12
 
         weight_king_sorrounded = 50000
 
-        weight_attacker = 12  # weight is given because inequal number of attacker and defender
-
-        weight_defender = 24
 
         attacker = 0  # attacker count
 
@@ -1465,25 +1466,25 @@ class AI_manager:
                 elif(col[0] == 'd'):
                     defender += 1
 
-        # making dynamic heuristic evaluation to prioritize on restricting movement of king when he is close to escaping cells
-        if r-2 <= 1 and c-2 <= 1:
+        # making dynamic heuristic evaluation to prioritize on restricting movement of king when he is close to corner cells
+        if r-3 <= 1 and c-3 <= 1:
             if fake_board[1][2][0] == 'a':
                 score += 50000
             if fake_board[2][1][0] == 'a':
                 score += 50000
-        elif r-2 <= 1 and c+2 >= 11:
+        elif r-3 <= 1 and c+3 >=(self.columns):
             if fake_board[1][self.columns-1][0] == 'a':
                 score += 50000
             if fake_board[2][self.columns][0] == 'a':
                 score += 50000
 
-        elif r+2 >= 11 and c-2 <= 1:
+        elif r+3 >= (self.rows) and c-3 <= 1:
             if fake_board[self.rows-1][1][0] == 'a':
                 score += 50000
             if fake_board[self.rows][2][0] == 'a':
                 score += 50000
 
-        elif r+2 >= 11 and c+2 >= 11:
+        elif r+3 >=(self.rows) and c+3 >=(self.columns):
             if fake_board[self.rows][self.columns-1][0] == 'a':
                 score += 50000
             if fake_board[self.rows-1][self.columns][0] == 'a':
@@ -1536,8 +1537,8 @@ class AI_manager:
             if not f:
                 break
 
-        # r=int((self.rows+1)/2)
-        # c=int((self.columns+1)/2)
+        # row = int((self.rows+1)/2)
+        # column = int((self.columns+1)/2)
         if current_board[int((self.rows+1)/2)][int((self.columns+1)/2)] == ".":
             current_board[int((self.rows+1)/2)][int((self.columns+1)/2)] = 'x'
         current_board[commited_move[1][0]][commited_move[1]
@@ -1597,7 +1598,7 @@ class AI_manager:
             for col_index, column in enumerate(row):
                 current_board[row_index][col_index] = column
 
-        # commit a move form valid moves list -> evaluate -> pick bestvalue -> alpha-beta computing
+        # commit a move from valid moves list -> evaluate -> pick bestvalue -> alpha-beta computing
         if(turn == True):  # attacker maximizer
             bestvalue = -1000000000000000000
             for i in moves:
@@ -1639,15 +1640,15 @@ class AI_manager:
         bestvalue = -1000000000000000000
         max_depth = 3
         # True attacker,False Defender  
-        #moves =(piece_object,(row,col))
+        # moves = (piece_object,(row,col))
         moves = self.find_all_possible_valid_moves(current_board, True)
         c = 0
         diffs = {}
         for i in moves:   # iterate all possible valid moves and their corersponding min max value
             c += 1
             fake_board, diff = self.fake_move(current_board, i)
-            value = self.minimax(fake_board, -10000000,
-                                 10000000, max_depth-1, False)
+            value = self.minimax(fake_board, -1000000000000000000,
+                                 1000000000000000000, max_depth-1, False)
             print(value, i[1], diff)
             if(value > bestvalue):
                 bestmove = i
@@ -1986,6 +1987,7 @@ def game_window(screen, mode):
                 pg.draw.circle(screen, white, (BOARD_LEFT+(manager.last_move[1][1]*CELL_WIDTH)+(CELL_WIDTH/2), BOARD_TOP+(
                     manager.last_move[1][0]*CELL_HEIGHT)+(CELL_HEIGHT/2)), 5)
             pg.display.update()
+            print("c")
             bot.move()
         for piece in All_pieces:
             piece.draw_piece(screen)        
@@ -2017,7 +2019,7 @@ def rules(screen):
             main()
         
         msgs = []
-        msgs.append("> Turn based game.")
+        msgs.append("> Turn based board game.")
         msgs.append("> Two board sizes: 'large' - 11x11 and 'small' - 9x9.")
         msgs.append("> Center cell and four corner cells are called restricted cells.")
         msgs.append("> Excluding king, a-d count is 24-12 on large board and 16-8 on small board.")
