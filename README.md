@@ -21,5 +21,7 @@ Hnefatafl originated in Scandinavia many centuries ago. It was developed from a 
 
 ## Screenshots
 ![Screenshot (6)](https://github.com/Bokhtiar-Adil/Vikings-chess-Hnefatafl/assets/103052177/9d4e8d28-6149-4fad-903e-87b953ea9d97)
+
 ![Screenshot (7)](https://github.com/Bokhtiar-Adil/Vikings-chess-Hnefatafl/assets/103052177/59622613-35d4-4749-90b0-adc597041468)
+
 ![Screenshot (8)](https://github.com/Bokhtiar-Adil/Vikings-chess-Hnefatafl/assets/103052177/00d9a605-dd47-4e55-9e87-e39cdf5e78a0)
