@@ -1431,12 +1431,14 @@ class AI_manager:
             weight_king_pos = weight_king_pos_11
             weight_attacker = 12  # weight is given because inequal number of attacker and defender
             weight_defender = 24
+            weight_king_sorrounded = 50000
         else:
             weight_king_pos = weight_king_pos_9
             weight_attacker = 8  # weight is given because inequal number of attacker and defender
             weight_defender = 12
+            weight_king_sorrounded = 1000
 
-        weight_king_sorrounded = 50000
+        #weight_king_sorrounded = 50000
 
 
         attacker = 0  # attacker count
@@ -1469,26 +1471,26 @@ class AI_manager:
         # making dynamic heuristic evaluation to prioritize on restricting movement of king when he is close to corner cells
         if r-3 <= 1 and c-3 <= 1:
             if fake_board[1][2][0] == 'a':
-                score += 50000
+                score += 1000
             if fake_board[2][1][0] == 'a':
-                score += 50000
+                score += 1000
         elif r-3 <= 1 and c+3 >=(self.columns):
             if fake_board[1][self.columns-1][0] == 'a':
-                score += 50000
+                score += 1000
             if fake_board[2][self.columns][0] == 'a':
-                score += 50000
+                score += 1000
 
         elif r+3 >= (self.rows) and c-3 <= 1:
             if fake_board[self.rows-1][1][0] == 'a':
-                score += 50000
+                score += 1000
             if fake_board[self.rows][2][0] == 'a':
-                score += 50000
+                score += 1000
 
         elif r+3 >=(self.rows) and c+3 >=(self.columns):
             if fake_board[self.rows][self.columns-1][0] == 'a':
-                score += 50000
+                score += 1000
             if fake_board[self.rows-1][self.columns][0] == 'a':
-                score += 50000
+                score += 1000
 
         score += (attacker*weight_attacker)
         score -= (defender*weight_defender)
