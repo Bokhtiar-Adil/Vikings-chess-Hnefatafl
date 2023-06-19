@@ -1436,7 +1436,7 @@ class AI_manager:
             weight_king_pos = weight_king_pos_9
             weight_attacker = 8  # weight is given because inequal number of attacker and defender
             weight_defender = 12
-            weight_king_sorrounded = 1000
+            weight_king_sorrounded = 10000
 
         #weight_king_sorrounded = 50000
 
