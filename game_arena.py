@@ -1136,22 +1136,22 @@ class AI_manager:
 
         border_row = []
         for column in range(columns+2):
-            border_row.append("=")
+            border_row.append("=")  #adding border
         current_board.append(border_row)
 
         for row in range(rows):
             one_row = ["="]
             for column in range(columns):
                 one_row.append('.')
-            one_row.append("=")
+            one_row.append("=")  #adding border
             current_board.append(one_row)
 
         current_board.append(border_row)
 
         for piece in All_pieces:
-            current_board[piece.row+1][piece.column+1] = piece.pid
+            current_board[piece.row+1][piece.column+1] = piece.pid    #corresponding id mapping for all the pieces in board
 
-        current_board[1][1] = current_board[1][rows] = current_board[rows][1] = current_board[rows][columns] = 'x'
+        current_board[1][1] = current_board[1][rows] = current_board[rows][1] = current_board[rows][columns] = 'x'   #creating these positions as restricted for all except king
         if current_board[int((self.rows+1)/2)][int((self.columns+1)/2)] != 'k':
             current_board[int((self.rows+1)/2)][int((self.columns+1)/2)] = 'x'
 
@@ -1206,6 +1206,7 @@ class AI_manager:
                 if thispos == "a" or thispos == "d" or thispos == "k" or thispos == "=" or (thispos == "x" and piece != "k"):
                     break
                 else:
+                    pass
                     # this part is commented out because so far ai is only attacker and this part checks both 'a' or 'd'
                     # # if selected piece is king, only one move per direction is allowed
                     if piece == "k":
@@ -1400,6 +1401,10 @@ class AI_manager:
         # heuristic values
         weight_pos = 5
         # for 11x11 board
+        '''
+        here king position is weighted depending on how close it is to escape points , the closer it gets 
+        the larger the points are
+        '''
         weight_king_pos_11 = [[10000, 10000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 10000, 10000],
                               [10000, 500, 500, 500, 500, 500,
                               500, 500, 500, 500, 10000],
@@ -1449,11 +1454,11 @@ class AI_manager:
 
         if self.fake_gameOver(fake_board) == 1:  # if 1 then winner is attacker
             print("c")
-            score += 10000000
+            score += 10000000  #if attacker wins a large score is added as it will help to maximize the score
             return score
 
         elif self.fake_gameOver(fake_board) == 2:  # if 1 then winner is defender
-            score -= 10000000
+            score -= 10000000  #if attacker wins a large score is subtracted as it will help to maximize the score
             return score
 
         # finding number of attackers and defenders currently on board
@@ -1469,6 +1474,11 @@ class AI_manager:
                     defender += 1
 
         # making dynamic heuristic evaluation to prioritize on restricting movement of king when he is close to corner cells
+        '''
+        this dynamic heuristic helps to make decision for ai when king is obviously escaping in next
+        few turns. Then the attacker will prioritize to prevent the king from escaping above anything   
+        else
+        '''
         if r-3 <= 1 and c-3 <= 1:
             if fake_board[1][2][0] == 'a':
                 score += 1000
@@ -1503,6 +1513,7 @@ class AI_manager:
     def fake_move(self, fake_board, commited_move):
         '''
         This function performs a fake move - AI's imaginative move in alpha-beta pruning
+        Fake move actually determines the score if this move is executed, it is not any actual move
 
         Parameters
         ----------
@@ -1606,10 +1617,10 @@ class AI_manager:
             for i in moves:
                 tmp_fake_board, diff = self.fake_move(current_board, i)
                 value = self.minimax(tmp_fake_board, alpha,
-                                     beta, max_depth-1, False)
+                                     beta, max_depth-1, False)  #calling minimax function recursively for next possible moves
                 bestvalue = max(value, bestvalue)
                 alpha = max(alpha, bestvalue)
-                if(beta <= alpha):
+                if(beta <= alpha):  # alpha beta pruning
                     break
 
         else:  # defender minimizer
@@ -1619,7 +1630,7 @@ class AI_manager:
                 value = self.minimax(tmp_fake_board, alpha,
                                      beta, max_depth-1, True)
                 bestvalue = min(value, bestvalue)
-                beta = min(beta, bestvalue)
+                beta = min(beta, bestvalue)   # alpha beta pruning
                 if(beta <= alpha):
                     break
 
@@ -1653,8 +1664,8 @@ class AI_manager:
                                  1000000000000000000, max_depth-1, False)
             print(value, i[1], diff)
             if(value > bestvalue):
-                bestmove = i
-                bestvalue = value
+                bestmove = i  #pick the best move which gives the maximum score for AI
+                bestvalue = value  
                 diffs[value] = diff
 
             elif(value == bestvalue and diff > diffs[value]):
