@@ -1,3 +1,8 @@
+'''
+AI project by Bokhtiar Adil and Sadman Sakib
+'''
+
+
 import os
 import sys
 import pygame as pg
