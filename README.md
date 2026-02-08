@@ -6,6 +6,21 @@ Hnefatafl originated in Scandinavia many centuries ago. It was developed from a 
 
 This project used minmax algorithm with alpha-beta pruning. The heuristic evaluation function considers king position, number of attackers and defenders remaining, how close it is to capture king etc. Based on the values provided by this function for all possible valid moves at a state, ai decides which move to commit.
 
+## How to run
+1. Install uv using the following command (or, you can follow the instructions here - https://docs.astral.sh/uv/getting-started/installation/)
+```
+pip install uv
+```
+2. Clone this repository
+```
+git clone https://github.com/Bokhtiar-Adil/Vikings-chess-Hnefatafl.git
+```
+3. Go to the cloned repository and run the game
+```
+cd Vikings-chess-Hnefatafl
+uv run game_arena.py
+```
+
 ## Rules
 - Turn based board game.
 - Two board sizes: 'large' - 11x11 and 'small' - 9x9.
