@@ -2,12 +2,10 @@
 AI project by Bokhtiar Adil and Sadman Sakib
 '''
 
-
 import os
 import sys
 import pygame as pg
 import time
-
 
 WINDOW_HEIGHT = 800
 WINDOW_WIDTH = 1000
@@ -94,8 +92,6 @@ class Custom_button:
 
     '''
     This class holds the ncessary part of a custom button operation.
-
-
     '''
 
     button_col = (26, 117, 255)
